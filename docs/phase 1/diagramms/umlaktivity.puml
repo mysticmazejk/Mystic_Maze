@@ -1,0 +1,44 @@
+@startuml activity
+
+start
+
+repeat
+
+    :Aktiven Spieler bestimmen;
+
+    :Freie Kachel drehen;
+
+    :ggf. Sonderfähigkeit einsetzen;
+
+    repeat
+        :Einschubposition auswählen;
+        :Einschubposition prüfen;
+    repeat while (Einschubposition ungültig?) is (Ja)
+
+    :Labyrinth verschieben;
+
+    :Erreichbare Felder unter Berücksichtigung
+    von Spezialeffekten;
+
+    :Spielfigur bewegen;
+
+    :ggf. Portal- oder Artefakteffekte
+    berücksichtigen;
+
+    :Aktuelles Ziel prüfen;
+
+    if (Ziel erreicht?) then (Ja)
+        :Zielstatus aktualisieren;
+    endif
+
+    
+repeat while (Siegbedingung erfüllt?) is (Nein)
+  
+
+:Partie beenden;
+:Gewinner festlegen;
+:Gewinner anzeigen;
+
+stop
+
+@enduml

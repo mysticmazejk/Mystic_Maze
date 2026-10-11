@@ -1,0 +1,28 @@
+from enum import Enum
+
+
+class Target(Enum):
+    WALDHUETER = "Waldhüter"
+    LATERNE = "Laterne"
+    EULE = "Eule"
+    WALDGEIST = "Waldgeist"
+    ZAUBERIN = "Zauberin"
+    SCHWERT = "Schwert"
+    SMARAGD = "Smaragd"
+    TRUHE = "Truhe"
+    DRACHE = "Drache"
+    RING = "Ring"
+    SPINNE = "Spinne"
+    FLEDERMAUS = "Fledermaus"
+    WALDWICHT = "Waldwicht"
+    MOTTE = "Motte"
+    HIRSCHSCHAEDEL = "Hirschschädel"
+    BLATTSCHLUESSEL = "Blattschlüssel"
+    KRONE = "Krone"
+    MAUS = "Maus"
+    KARTE = "Karte"
+    LEUCHTKAEFER = "Leuchtkäfer"
+    EIDECHSE = "Eidechse"
+    GELDBEUTEL = "Geldbeutel"
+    IRRLICHT = "Irrlicht"
+    MONDSCHLUESSEL = "Mondschlüssel"

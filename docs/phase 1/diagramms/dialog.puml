@@ -1,0 +1,22 @@
+@startuml dialog
+
+[*] --> Startseite
+
+Startseite --> Spielvorbereitung : Partie erstellen
+Startseite --> Beitritt : Partie beitreten
+
+Beitritt --> Beitritt : Ungültige Partie-ID
+Beitritt --> Spielvorbereitung : Gültige Partie-ID
+
+Spielvorbereitung --> Spielvorbereitung : Charakter auswählen
+Spielvorbereitung --> Spielansicht : Partie starten
+
+Spielansicht --> Spielansicht : Spielzug durchführen
+Spielansicht --> Spielende : Siegbedingung erfüllt
+
+Spielende --> Spielvorbereitung : Neue Partie
+Spielende --> Startseite : Zur Startseite
+
+Startseite --> [*] : Anwendung verlassen
+
+@enduml

@@ -1,0 +1,30 @@
+@startuml activity
+
+start
+
+:Host erstellt neue Partie;
+
+:System erzeugt eindeutige Partie-ID;
+
+:Partie-ID anzeigen;
+
+    repeat
+        :Spieler gibt Partie-ID ein;
+        :Partie und Beitrittsmöglichkeit prüfen;
+    repeat while (Beitritt nicht zulässig?) is (Ja)
+
+    :Spieler tritt Partie bei;
+
+    repeat
+        :Charakter auswählen;
+        :Charakterauswahl prüfen;
+    repeat while (Charakterauswahl ungültig?) is (Ja)
+
+
+:Host startet Partie;
+
+:Initialen Spielzustand erzeugen;
+
+stop
+
+@enduml

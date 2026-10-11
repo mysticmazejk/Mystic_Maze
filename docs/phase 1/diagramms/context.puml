@@ -1,0 +1,23 @@
+@startuml
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+
+actor "Host-Spieler:in" as Host
+actor "Spieler:in" as Player
+
+package "Systemgrenze Mystic Maze" {
+
+    rectangle "Mystic Maze\nWebanwendung" as MysticMaze
+}
+
+Host --> MysticMaze : Partie erstellen\nPartie starten\nSpielaktionen ausführen
+
+Player --> MysticMaze : Partie beitreten\nSpielaktionen ausführen
+
+MysticMaze --> Host : Spielzustand anzeigen\nund synchronisieren
+MysticMaze --> Player : Spielzustand anzeigen\nund synchronisieren
+
+@enduml
