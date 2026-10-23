@@ -22,8 +22,8 @@ class Game:
         # Liste aller teilnehmenden Spieler.
         self.players: list[Player] = []
 
-        # Index des Spielers, der aktuell am Zug ist.
-        self.current_player_index = 0
+        # ID des Spielers, der aktuell am Zug ist.
+        self.current_player_id = 0
 
         # Speichert, ob in diesem Zug bereits geschoben wurde.
         self.has_shifted = False
@@ -74,13 +74,14 @@ class Game:
         if not self.players:
             raise ValueError("Es befinden sich keine Spieler im Spiel.")
 
-        return self.players[self.current_player_index]
+        return self.players[self.current_player_id]
 
-    def add_player(self, name: str) -> None:
+    def add_player(self, name: str) -> Player:
         """
         Fügt einen Spieler zum Spiel hinzu.
 
         :param name: Name des neuen Spielers.
+        :return: Hinzugefügtes Spielerobjekt
         :raises ValueError: Wenn das Spiel bereits gestartet wurde.
         :raises ValueError: Wenn bereits vier Spieler teilnehmen.
         """
@@ -113,6 +114,8 @@ class Game:
         )
 
         self.players.append(player)
+
+        return player
 
     def insert_spare_tile(self, index: int, direction: Direction) -> None:
         """
@@ -384,8 +387,8 @@ class Game:
             )
 
         # Zum nächsten Spieler wechseln.
-        self.current_player_index = (
-            self.current_player_index + 1
+        self.current_player_id = (
+                                         self.current_player_id + 1
         ) % len(self.players)
 
         # Zugstatus für den neuen Spieler zurücksetzen.
@@ -449,9 +452,9 @@ class Game:
 
         # Zielkarten reihum verteilen.
         for index, target in enumerate(selected_targets):
-            player_index = index % len(self.players)
+            player_id = index % len(self.players)
 
-            self.players[player_index].targets.append(
+            self.players[player_id].targets.append(
                 target
             )
 
@@ -686,7 +689,7 @@ class Game:
         )
 
         # Der zuerst hinzugefügte Spieler beginnt.
-        self.current_player_index = 0
+        self.current_player_id = 0
 
         # Zugstatus zurücksetzen.
         self.has_shifted = False
@@ -784,3 +787,135 @@ class Game:
             )
 
         self.board.spare_tile.rotate_clockwise()
+
+
+    def get_player(
+        self,
+        player_id: int
+    ) -> Player:
+        """
+        Gibt einen Spieler anhand seiner Position in der Spielerliste zurück.
+
+        :param player_id: ID des Spielers.
+        :return: Gefundener Spieler.
+        :raises ValueError: Wenn kein Spieler mit dieser Id existiert.
+        """
+
+        if (
+            player_id < 0
+            or player_id >= len(self.players)
+        ):
+            raise ValueError(
+                f"Spieler mit Index {player_id} wurde nicht gefunden."
+            )
+
+        return self.players[player_id]
+
+    def get_allowed_shifts(
+            self
+    ) -> list[tuple[int, Direction]]:
+        """
+        Ermittelt alle aktuell erlaubten Schiebeaktionen.
+
+        Berücksichtigt:
+        - die gültigen Reihen und Spalten 1, 3 und 5,
+        - ob in diesem Zug bereits geschoben wurde,
+        - das Verbot, den vorherigen Schiebezug direkt rückgängig
+          zu machen.
+
+        :return: Liste aus Index und Schieberichtung.
+        """
+
+        # Vor Spielstart, nach Spielende oder nach bereits
+        # erfolgtem Schieben gibt es keine erlaubte Schiebeaktion.
+        if (
+                not self.started
+                or self.finished
+                or self.has_shifted
+        ):
+            return []
+
+        allowed_shifts = []
+
+        valid_indices = [
+            1,
+            3,
+            5
+        ]
+
+        directions = [
+            Direction.NORTH,
+            Direction.EAST,
+            Direction.SOUTH,
+            Direction.WEST,
+        ]
+
+        for index in valid_indices:
+            for direction in directions:
+
+                # Direkte Umkehr des letzten Schiebezuges verhindern.
+                if self.last_shift is not None:
+                    last_index, last_direction = (
+                        self.last_shift
+                    )
+
+                    forbidden_direction = (
+                        self._get_opposite_direction(
+                            last_direction
+                        )
+                    )
+
+                    if (
+                            index == last_index
+                            and direction == forbidden_direction
+                    ):
+                        continue
+
+                allowed_shifts.append(
+                    (
+                        index,
+                        direction
+                    )
+                )
+
+        return allowed_shifts
+
+    def get_reachable_positions_for_current_player(
+            self
+    ) -> set[tuple[int, int]]:
+        """
+        Ermittelt alle Felder, die der aktuell aktive Spieler
+        in seinem derzeitigen Zug erreichen kann.
+
+        Geschlossene Tore werden dabei als gesperrte Felder
+        berücksichtigt.
+
+        Erreichbare Felder werden nur zurückgegeben, wenn:
+        - das Spiel gestartet wurde,
+        - das Spiel noch nicht beendet wurde,
+        - das Labyrinth bereits verschoben wurde,
+        - der Spieler sich noch nicht bewegt hat.
+
+        :return: Menge der erreichbaren Positionen als
+                 Tupel aus Zeile und Spalte.
+        """
+
+        if (
+                not self.started
+                or self.finished
+                or not self.has_shifted
+                or self.has_moved
+        ):
+            return set()
+
+        player = self.get_current_player()
+
+        blocked_positions = (
+            self._get_locked_gate_positions()
+        )
+
+        return self.board.get_reachable_positions(
+            player.row,
+            player.column,
+            blocked_positions=blocked_positions
+        )

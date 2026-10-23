@@ -855,3 +855,171 @@ def test_players_cannot_be_added_after_start():
         match="Nach Spielstart"
     ):
         game.add_player("Spieler 3")
+
+
+def test_get_player_by_index():
+    """
+    Prüft, ob ein Spieler anhand seines Index gefunden wird.
+    """
+    game = Game()
+
+    game.add_player("Spieler 1")
+    game.add_player("Spieler 2")
+
+    player = game.get_player(1)
+
+    assert player.name == "Spieler 2"
+
+
+def test_get_player_with_invalid_index_fails():
+    """
+    Prüft, ob ein ungültiger Spielerindex abgelehnt wird.
+    """
+    game = Game()
+
+    game.add_player("Spieler 1")
+
+    with pytest.raises(
+        ValueError,
+        match="nicht gefunden"
+    ):
+        game.get_player(1)
+
+
+def test_negative_player_index_fails():
+    """
+    Prüft, ob negative Spielerindizes nicht zugelassen werden.
+    """
+    game = Game()
+
+    game.add_player("Spieler 1")
+
+    with pytest.raises(
+        ValueError,
+        match="nicht gefunden"
+    ):
+        game.get_player(-1)
+
+def test_all_shifts_available_at_start():
+    """
+    Prüft, ob zu Beginn eines Zuges alle zwölf
+    Einschubmöglichkeiten verfügbar sind.
+    """
+    game = create_started_game()
+
+    allowed_shifts = (
+        game.get_allowed_shifts()
+    )
+
+    assert len(allowed_shifts) == 12
+
+def test_no_shift_available_after_shift():
+    """
+    Prüft, ob nach dem Einschieben keine weitere
+    Schiebeaktion im selben Zug möglich ist.
+    """
+    game = create_started_game()
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    assert game.get_allowed_shifts() == []
+
+def test_reverse_shift_not_available_next_turn():
+    """
+    Prüft, ob der vorherige Schiebezug im nächsten Zug
+    nicht unmittelbar rückgängig gemacht werden kann.
+    """
+    game = create_started_game()
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    game.end_turn()
+
+    allowed_shifts = (
+        game.get_allowed_shifts()
+    )
+
+    assert (
+        1,
+        Direction.WEST
+    ) not in allowed_shifts
+
+    assert len(allowed_shifts) == 11
+
+
+def test_no_reachable_positions_before_shift():
+    """
+    Prüft, ob vor dem Verschieben noch keine
+    Bewegungsziele angeboten werden.
+    """
+    game = create_started_game()
+
+    assert (
+        game.get_reachable_positions_for_current_player()
+        == set()
+    )
+
+def test_reachable_positions_available_after_shift():
+    """
+    Prüft, ob nach dem Verschieben erreichbare
+    Positionen ermittelt werden.
+    """
+    game = create_started_game()
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    reachable_positions = (
+        game.get_reachable_positions_for_current_player()
+    )
+
+    player = game.get_current_player()
+
+    # Die eigene Position gehört bei der BFS ebenfalls
+    # zu den erreichbaren Positionen.
+    assert (
+        player.row,
+        player.column
+    ) in reachable_positions
+
+
+def test_no_reachable_positions_after_player_moved():
+    """
+    Prüft, ob nach einer bereits erfolgten Bewegung
+    keine weiteren Bewegungsziele angeboten werden.
+    """
+    game = create_started_game()
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    player = game.get_current_player()
+
+    reachable_positions = (
+        game.get_reachable_positions_for_current_player()
+    )
+
+    target_row, target_column = next(
+        iter(reachable_positions)
+    )
+
+    game.move_player(
+        player,
+        target_row,
+        target_column
+    )
+
+    assert (
+        game.get_reachable_positions_for_current_player()
+        == set()
+    )
