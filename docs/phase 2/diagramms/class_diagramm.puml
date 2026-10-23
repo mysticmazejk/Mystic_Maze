@@ -1,0 +1,105 @@
+top to bottom direction
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultTextAlignment left
+
+package "Anwendungslogik" {
+
+    class GameManager {
+        - games: dict[str, Game]
+        + create_game(): str
+        + get_game(game_id: str): Game
+        + remove_game(game_id: str): void
+        + add_player(game_id: str, name: str): int
+        + get_player(game_id: str, player_index: int): Player
+        + start_game(game_id: str, targets_per_player: int): void
+        + get_max_targets_per_player(game_id: str): int
+    }
+
+    class ConnectionManager {
+        - connections
+        + connect(game_id: str, player_index: int, websocket): void
+        + disconnect(game_id: str, player_index: int): void
+        + publish_game_state(game_id: str): void
+    }
+}
+
+package "Spiellogik" {
+
+    class Game {
+        - board: Board
+        - players: list[Player]
+        - current_player_index: int
+        - has_shifted: bool
+        - has_moved: bool
+        - last_shift
+        - activated_keys: set[Target]
+        - started: bool
+        - finished: bool
+        - winner: Player
+        + add_player(name: str): int
+        + get_player(player_index: int): Player
+        + get_current_player(): Player
+        + start_game(targets_per_player: int): void
+        + distribute_targets(targets_per_player: int): void
+        + insert_spare_tile(index: int, direction: Direction): void
+        + move_player(player: Player, row: int, column: int): void
+        + end_turn(): void
+        + activate_key(target: Target): void
+        + is_gate_open(gate_type: GateType): bool
+    }
+
+    class Board {
+        {static} SIZE: int = 7
+        - tiles: list[list[Tile]]
+        - spare_tile: Tile
+        + get_tile(row: int, column: int): Tile
+        + insert_spare_tile(index: int, direction: Direction): void
+        + get_reachable_positions(row: int, column: int): set
+        + is_valid_position(row: int, column: int): bool
+    }
+
+    class Tile {
+        - tile_type: TileType
+        - rotation: int
+        - target: Target
+        - gate: GateType
+        - portal: bool
+        + rotate(): void
+    }
+
+    class Player {
+        - player_index: int
+        - name: str
+        - row: int
+        - column: int
+        - targets: list[Target]
+        - completed_targets: list[Target]
+        + get_current_target(): Target
+        + complete_current_target(): void
+    }
+    enum Target
+    enum TileType
+    enum Direction
+    enum GateType
+}
+
+
+
+GameManager "1" o-- "0..*" Game : verwaltet
+ConnectionManager ..> GameManager : nutzt
+
+Game "1" *-- "1" Board
+Game "1" *-- "2..4" Player
+Board "1" *-- "49" Tile : Spielfeld
+Board "1" *-- "1" Tile : freie Kachel
+
+Player --> Target : Ziele
+Tile --> Target : Ziel
+Tile --> TileType
+Tile --> GateType
+Game --> Direction
+Game --> Target : Schlüssel
+
+@enduml

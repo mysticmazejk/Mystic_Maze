@@ -1,0 +1,66 @@
+@startuml
+
+top to bottom direction
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+
+skinparam component {
+    RoundCorner 10
+}
+
+skinparam package {
+    RoundCorner 12
+}
+
+actor "Spieler" as Player
+
+package "Client" {
+    component "Webbrowser" as Browser {
+        component "Benutzeroberfläche\nHTML / CSS / JavaScript" as UI
+    }
+}
+
+package "Server" {
+
+    package "Kommunikationsschicht" {
+        component "FastAPI" as API
+        component "HTTP-Endpunkte" as HTTP
+        component "WebSocket-Endpunkte" as WS
+    }
+
+    package "Anwendungslogik" {
+        component "GameManager" as Manager
+    }
+
+    package "Spiellogik" {
+        component "Game" as Game
+        component "Board" as Board
+        component "Player" as GamePlayer
+        component "Tile" as Tile
+        component "Target" as Target
+    }
+}
+
+Player --> UI : Eingaben
+
+UI <--> HTTP : HTTP\nJSON
+UI <--> WS : WebSocket\nJSON
+
+HTTP --> API
+WS --> API
+
+API --> Manager : Anfrage / Spielaktion
+Manager --> Game : Partie verwalten
+
+Game --> Board
+Game --> GamePlayer
+Board --> Tile
+Game --> Target
+
+WS <-- API : aktualisierter\nSpielzustand
+
+
+@enduml
