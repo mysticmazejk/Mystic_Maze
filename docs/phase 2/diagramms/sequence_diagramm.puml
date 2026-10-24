@@ -1,0 +1,107 @@
+@startuml
+
+actor Spieler
+
+participant "Browser" as Browser
+participant "WebSocket-\nHandler" as WS
+participant "GameManager" as Manager
+participant "Game" as Game
+participant "Board" as Board
+participant "ConnectionManager" as Connections
+participant "Weitere Browser" as Others
+
+== Freie Kachel drehen ==
+
+Spieler -> Browser : freie Kachel drehen
+Browser -> WS : rotate_spare_tile
+
+WS -> Manager : get_game(game_id)
+Manager --> WS : Game
+
+WS -> Game : rotate_spare_tile(player_index)
+Game --> WS : Aktion erfolgreich
+
+WS -> Connections : publish_game_state(game_id)
+Connections -> Browser : aktualisierter Spielzustand
+Connections -> Others : aktualisierter Spielzustand
+
+== Labyrinth verschieben ==
+
+Spieler -> Browser : Einschubposition wählen
+Browser -> WS : insert_spare_tile(index, direction)
+
+WS -> Manager : get_game(game_id)
+Manager --> WS : Game
+
+WS -> Game : insert_spare_tile(player_index,\nindex, direction)
+
+Game -> Game : Spielstatus und\nZugberechtigung prüfen
+
+alt Aktion gültig
+    Game -> Board : insert_spare_tile(index, direction)
+    Board --> Game : Spielfeld verschoben
+
+    Game -> Game : Spieler auf betroffener\nReihe / Spalte mitverschieben
+
+    Game --> WS : Aktion erfolgreich
+
+    WS -> Connections : publish_game_state(game_id)
+    Connections -> Browser : aktualisierter Spielzustand
+    Connections -> Others : aktualisierter Spielzustand
+else Aktion ungültig
+    Game --> WS : Fehler
+    WS --> Browser : Fehlermeldung
+end
+
+== Spielfigur bewegen ==
+
+Spieler -> Browser : Zielfeld auswählen
+Browser -> WS : move_player(row, column)
+
+WS -> Manager : get_game(game_id)
+Manager --> WS : Game
+
+WS -> Game : move_player(player_index,\nrow, column)
+
+Game -> Board : get_reachable_positions(...)
+Board --> Game : erreichbare Positionen
+
+alt Zielfeld erreichbar
+    Game -> Game : Spielerposition aktualisieren
+    Game -> Game : Kacheleffekte verarbeiten
+    Game -> Game : Siegbedingung prüfen
+
+    Game --> WS : Aktion erfolgreich
+
+    WS -> Connections : publish_game_state(game_id)
+    Connections -> Browser : aktualisierter Spielzustand
+    Connections -> Others : aktualisierter Spielzustand
+
+else Zielfeld nicht erreichbar
+    Game --> WS : Fehler
+    WS --> Browser : Fehlermeldung
+end
+
+== Zug beenden ==
+
+alt Partie nicht beendet
+    Spieler -> Browser : Zug beenden
+    Browser -> WS : end_turn
+
+    WS -> Manager : get_game(game_id)
+    Manager --> WS : Game
+
+    WS -> Game : end_turn(player_index)
+    Game -> Game : nächsten Spieler aktivieren\nund Zugstatus zurücksetzen
+
+    Game --> WS : Aktion erfolgreich
+
+    WS -> Connections : publish_game_state(game_id)
+    Connections -> Browser : aktualisierter Spielzustand
+    Connections -> Others : aktualisierter Spielzustand
+else Siegbedingung erfüllt
+    Connections -> Browser : Spielende / Gewinner
+    Connections -> Others : Spielende / Gewinner
+end
+
+@enduml

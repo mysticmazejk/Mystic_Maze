@@ -75,42 +75,6 @@ async def join_game(
         )
 
 
-@router.get("/{game_id}")
-def get_game(
-    game_id: str
-):
-    """
-    Gibt den aktuellen Lobby- bzw. Spielstatus zurück.
-    """
-    try:
-        game = game_manager.get_game(
-            game_id
-        )
-
-        players = [
-            {
-                "player_index": index,
-                "name": player.name
-            }
-            for index, player in enumerate(
-                game.players
-            )
-        ]
-
-        return {
-            "game_id": game_id.upper(),
-            "started": game.started,
-            "finished": game.finished,
-            "players": players
-        }
-
-    except ValueError as error:
-        raise HTTPException(
-            status_code=404,
-            detail=str(error)
-        )
-
-
 @router.post("/{game_id}/start")
 async def start_game(
     game_id: str,
