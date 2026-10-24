@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Mystic Maze</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+</head>
+
+<body>
+
+<main class="container">
+
+    <h1>Mystic Maze</h1>
+
+    <section>
+        <h2>Neues Spiel</h2>
+
+        <form id="create-game-form">
+
+            <label for="create-name">
+                Spielername
+            </label>
+
+            <input
+                id="create-name"
+                type="text"
+                required
+            >
+
+            <button type="submit">
+                Spiel erstellen
+            </button>
+
+        </form>
+    </section>
+
+
+    <section>
+        <h2>Spiel beitreten</h2>
+
+        <form id="join-game-form">
+
+            <label for="join-game-id">
+                Spiel-ID
+            </label>
+
+            <input
+                id="join-game-id"
+                type="text"
+                maxlength="6"
+                required
+            >
+
+            <label for="join-name">
+                Spielername
+            </label>
+
+            <input
+                id="join-name"
+                type="text"
+                required
+            >
+
+            <button type="submit">
+                Beitreten
+            </button>
+
+        </form>
+    </section>
+
+    <p
+        id="error-message"
+        class="error"
+    ></p>
+
+</main>
+
+<script src="/static/js/index.js"></script>
+
+</body>
+</html>

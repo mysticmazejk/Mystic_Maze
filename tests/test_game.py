@@ -1242,19 +1242,19 @@ def test_magician_ability_can_only_be_used_once_per_target():
     )
 
     old_rotation = (
-        game.board.tiles[2][2].rotation
+        game.board.tiles[1][1].rotation
     )
 
     game.use_magician_ability(
         player,
-        2,
-        2
+        1,
+        1
     )
 
     # Die gewählte Board-Kachel wurde genau
     # um einen Rotationsschritt gedreht.
     assert (
-        game.board.tiles[2][2].rotation
+        game.board.tiles[1][1].rotation
         == (old_rotation + 1) % 4
     )
 
@@ -1272,8 +1272,8 @@ def test_magician_ability_can_only_be_used_once_per_target():
     ):
         game.use_magician_ability(
             player,
-            2,
-            3
+            1,
+            2
         )
 
 
@@ -1309,6 +1309,68 @@ def test_magician_ability_resets_after_target_completion():
 
     # Da ein neues Ziel gesucht wird, darf der Magier
     # seine Fähigkeit erneut verwenden.
+    assert (
+        player.ability_used_for_current_target
+        is False
+    )
+
+def test_magician_cannot_rotate_fixed_tile():
+    """
+    Prüft, ob der Magier keine feste Kachel
+    des Spielbretts drehen kann.
+
+    Ein abgelehnter Versuch darf die Fähigkeit
+    für das aktuelle Ziel nicht verbrauchen.
+    """
+    game = Game()
+
+    game.add_player("Magier")
+    game.add_player("Wächter")
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
+    )
+
+    game.start_game(1)
+
+    player = game.players[0]
+
+    # Die Magier-Fähigkeit ist erst nach
+    # dem regulären Einschieben verfügbar.
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    # Position (2, 2) gehört zu den festen
+    # Kacheln des Spielbretts.
+    tile = game.board.tiles[2][2]
+
+    assert tile.fixed is True
+
+    old_rotation = tile.rotation
+
+    with pytest.raises(
+        ValueError,
+        match="Feste Kacheln"
+    ):
+        game.use_magician_ability(
+            player,
+            2,
+            2
+        )
+
+    # Die feste Kachel bleibt unverändert.
+    assert tile.rotation == old_rotation
+
+    # Ein ungültiger Versuch verbraucht
+    # die Fähigkeit nicht.
     assert (
         player.ability_used_for_current_target
         is False

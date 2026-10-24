@@ -437,3 +437,145 @@ def test_game_id_is_case_insensitive():
         response.json()["game_id"]
         == game_id
     )
+
+def test_player_can_select_character_via_api():
+    """
+    Prüft, ob ein Spieler seinen Charakter
+    über die REST-API auswählen kann.
+    """
+    game_id = (
+        client.post("/games")
+        .json()["game_id"]
+    )
+
+    client.post(
+        f"/games/{game_id}/players",
+        json={
+            "name": "Spieler 1"
+        }
+    )
+
+    response = client.put(
+        f"/games/{game_id}/players/0/character",
+        json={
+            "character": "Magier"
+        }
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["player_index"] == 0
+    assert data["character"] == "Magier"
+
+    player = game_manager.get_player(
+        game_id,
+        0
+    )
+
+    assert (
+        player.character
+        == CharacterType.MAGICIAN
+    )
+
+
+def test_character_cannot_be_selected_twice_via_api():
+    """
+    Prüft, ob ein bereits vergebener Charakter
+    über die REST-API nicht erneut gewählt werden kann.
+    """
+    game_id = (
+        client.post("/games")
+        .json()["game_id"]
+    )
+
+    client.post(
+        f"/games/{game_id}/players",
+        json={
+            "name": "Spieler 1"
+        }
+    )
+
+    client.post(
+        f"/games/{game_id}/players",
+        json={
+            "name": "Spieler 2"
+        }
+    )
+
+    first_response = client.put(
+        f"/games/{game_id}/players/0/character",
+        json={
+            "character": "Magier"
+        }
+    )
+
+    assert first_response.status_code == 200
+
+    second_response = client.put(
+        f"/games/{game_id}/players/1/character",
+        json={
+            "character": "Magier"
+        }
+    )
+
+    assert second_response.status_code == 400
+
+    assert (
+        "bereits vergeben"
+        in second_response.json()["detail"]
+    )
+
+
+def test_game_can_start_after_character_selection_via_api():
+    """
+    Prüft den vollständigen Lobby-Ablauf:
+    Zwei Spieler treten bei, wählen unterschiedliche
+    Charaktere und starten anschließend das Spiel.
+    """
+    game_id = (
+        client.post("/games")
+        .json()["game_id"]
+    )
+
+    client.post(
+        f"/games/{game_id}/players",
+        json={
+            "name": "Spieler 1"
+        }
+    )
+
+    client.post(
+        f"/games/{game_id}/players",
+        json={
+            "name": "Spieler 2"
+        }
+    )
+
+    magician_response = client.put(
+        f"/games/{game_id}/players/0/character",
+        json={
+            "character": "Magier"
+        }
+    )
+
+    guardian_response = client.put(
+        f"/games/{game_id}/players/1/character",
+        json={
+            "character": "Wächter"
+        }
+    )
+
+    assert magician_response.status_code == 200
+    assert guardian_response.status_code == 200
+
+    response = client.post(
+        f"/games/{game_id}/start",
+        json={
+            "targets_per_player": 1
+        }
+    )
+
+    assert response.status_code == 200
+    assert response.json()["started"] is True

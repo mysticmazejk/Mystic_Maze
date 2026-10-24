@@ -14,7 +14,7 @@ class Target(Enum):
     RING = "Ring"
     SPINNE = "Spinne"
     FLEDERMAUS = "Fledermaus"
-    WALDWICHT = "Waldwicht"
+    WICHT = "Wicht"
     MOTTE = "Motte"
     HIRSCHSCHAEDEL = "Hirschschädel"
     BLATTSCHLUESSEL = "Blattschlüssel"

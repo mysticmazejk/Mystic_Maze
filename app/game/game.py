@@ -1007,26 +1007,35 @@ class Game:
         Verwendet die Sonderfähigkeit des Magiers.
 
         Der Magier darf einmal pro aktuell gesuchtem persönlichen
-        Target eine Kachel auf dem Spielbrett um 90 Grad drehen.
+        Ziel eine bewegliche Kachel auf dem Spielbrett um 90 Grad
+        im Uhrzeigersinn drehen.
 
-        Die Fähigkeit kann im eigenen Zug nach dem Einschieben
-        und vor der Spielerbewegung verwendet werden.
+        Feste Kacheln dürfen durch die Magier-Fähigkeit
+        nicht verändert werden.
 
         :param player: Spieler, der die Fähigkeit verwendet.
         :param row: Zeile der zu drehenden Kachel.
         :param column: Spalte der zu drehenden Kachel.
-        :raises ValueError: Wenn die Fähigkeit aktuell nicht
-                            verwendet werden darf.
+        :raises ValueError: Wenn die Fähigkeit aktuell nicht verwendet werden darf.
+        :raises ValueError: Wenn die Position ungültig ist.
+        :raises ValueError: Wenn eine feste Kachel ausgewählt wurde.
         """
-
         self._ensure_game_active()
+
+        if player not in self.players:
+            raise ValueError(
+                "Der Spieler gehört nicht zu diesem Spiel."
+            )
 
         if player != self.get_current_player():
             raise ValueError(
                 "Dieser Spieler ist aktuell nicht am Zug."
             )
 
-        if player.character != CharacterType.MAGICIAN:
+        if (
+                player.character
+                != CharacterType.MAGICIAN
+        ):
             raise ValueError(
                 "Nur der Magier kann diese Fähigkeit verwenden."
             )
@@ -1039,8 +1048,8 @@ class Game:
 
         if self.has_moved:
             raise ValueError(
-                "Die Magier-Fähigkeit kann nach der Bewegung "
-                "nicht mehr verwendet werden."
+                "Die Magier-Fähigkeit kann nach der "
+                "Bewegung nicht mehr verwendet werden."
             )
 
         if player.get_current_target() is None:
@@ -1068,14 +1077,21 @@ class Game:
             column
         )
 
-        # Die Charakterfähigkeit darf ausdrücklich eine Kachel
-        # auf dem Spielbrett drehen. Deshalb wird hier bewusst
-        # nicht Tile.rotate_clockwise() verwendet, da diese Methode
-        # feste Kacheln normalerweise vor Rotation schützt.
+        # Feste Kacheln gehören zur unveränderlichen
+        # Grundstruktur des Labyrinths und dürfen auch
+        # durch den Magier nicht gedreht werden.
+        if tile.fixed:
+            raise ValueError(
+                "Feste Kacheln können durch den Magier nicht gedreht werden."
+            )
+
+        # Bewegliche Board-Kachel um 90 Grad drehen.
         tile.rotation = (
                                 tile.rotation + 1
                         ) % 4
 
+        # Die Fähigkeit ist damit für das aktuell
+        # gesuchte persönliche Ziel verbraucht.
         player.ability_used_for_current_target = True
 
     def can_use_magician_ability(

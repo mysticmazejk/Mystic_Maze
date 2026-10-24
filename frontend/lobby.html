@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Mystic Maze – Lobby</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+
+</head>
+
+<body>
+
+<main class="container">
+
+    <h1>Lobby</h1>
+
+    <p>
+        Spiel-ID:
+        <strong id="game-id"></strong>
+    </p>
+
+    <p>
+        Du bist Spieler
+        <strong id="player-index"></strong>
+    </p>
+
+    <p>
+        Verbindung:
+        <strong id="connection-status">
+            wird aufgebaut...
+        </strong>
+    </p>
+
+
+    <section>
+
+        <h2>Spieler</h2>
+
+        <ul id="player-list"></ul>
+
+    </section>
+
+    <section id="character-section">
+
+        <h2>Charakter wählen</h2>
+
+        <label for="character-select">
+            Dein Charakter
+        </label>
+
+        <select id="character-select">
+
+            <option value="">
+                Bitte wählen
+            </option>
+
+            <option value="Magier">
+                Magier
+            </option>
+
+            <option value="Wächter">
+                Wächter
+            </option>
+
+        </select>
+
+        <button
+            id="select-character-button"
+            type="button"
+        >
+            Charakter auswählen
+        </button>
+
+        <p id="character-description"></p>
+
+    </section>
+
+    <section id="start-section">
+
+        <h2>Spiel starten</h2>
+
+        <form id="start-game-form">
+
+            <label for="targets-per-player">
+                Zielkarten pro Spieler
+            </label>
+
+            <input
+                id="targets-per-player"
+                type="number"
+                min="1"
+                max="11"
+                value="5"
+                required
+            >
+
+            <button
+                id="start-game-button"
+                type="submit"
+            >
+                Spiel starten
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <section>
+
+        <h2>Spielstatus</h2>
+
+        <p id="game-status">
+            Warten auf Spielstart.
+        </p>
+
+    </section>
+
+
+    <section>
+
+        <h2>Dein aktuelles Ziel</h2>
+
+        <p id="current-target">
+            Noch nicht vergeben.
+        </p>
+
+    </section>
+
+
+    <p
+        id="error-message"
+        class="error"
+    ></p>
+
+</main>
+
+<script src="/static/js/lobby.js"></script>
+
+</body>
+</html>

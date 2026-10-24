@@ -1,0 +1,368 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+}
+
+.container {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 24px;
+    background: white;
+}
+
+section {
+    margin-top: 32px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+input,
+button {
+    padding: 10px;
+    font-size: 16px;
+}
+
+button {
+    cursor: pointer;
+}
+
+.error {
+    color: #b00020;
+    font-weight: bold;
+}
+.game-container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 20px;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.game-layout {
+    display: grid;
+    grid-template-columns: minmax(500px, 1fr) 280px;
+    gap: 40px;
+    align-items: start;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+
+    width: min(75vw, 700px);
+    aspect-ratio: 1;
+
+    gap: 3px;
+
+    background: #333;
+    padding: 3px;
+}
+
+.tile {
+    position: relative;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    aspect-ratio: 1;
+
+    background: #d8d8d8;
+
+    box-sizing: border-box;
+
+    font-size: 14px;
+    text-align: center;
+}
+
+.tile-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 100%;
+    height: 100%;
+}
+
+.tile-fixed {
+    background: #c8c8c8;
+}
+
+.tile-reachable {
+    outline: 4px solid #58a65c;
+    outline-offset: -4px;
+
+    cursor: pointer;
+}
+
+.tile-portal {
+    background: #d5c7ef;
+}
+
+.tile-gate {
+    font-size: 28px;
+}
+
+.tile-path {
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-size: 42px;
+    font-weight: bold;
+
+    pointer-events: none;
+
+    z-index: 1;
+}
+
+.tile-overlay {
+    position: absolute;
+
+    left: 4px;
+    right: 4px;
+    bottom: 5px;
+
+    z-index: 2;
+
+    font-size: 11px;
+    text-align: center;
+
+    pointer-events: none;
+}
+
+.tile-magician-selectable {
+    outline: 4px solid #d08a24;
+    outline-offset: -4px;
+    cursor: pointer;
+}
+
+.tile-magician-selectable:hover {
+    filter: brightness(1.12);
+}
+
+.gate-closed {
+    background: #d6a3a3;
+}
+
+.gate-open {
+    background: #abd6aa;
+}
+
+.players-on-tile {
+    position: absolute;
+
+    right: 3px;
+    bottom: 3px;
+
+    display: flex;
+    gap: 2px;
+
+    transform: rotate(0deg);
+}
+
+.player-marker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 22px;
+    height: 22px;
+
+    border-radius: 50%;
+
+    background: black;
+    color: white;
+
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.spare-tile {
+    width: 100px;
+    height: 100px;
+}
+
+.game-sidebar section {
+    margin-top: 0;
+    margin-bottom: 30px;
+}
+
+
+@media (max-width: 850px) {
+
+    .game-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .board {
+        width: 100%;
+    }
+
+    .game-header {
+        flex-direction: column;
+    }
+}
+
+.board-area {
+    padding: 55px;
+}
+
+.board-shell {
+    position: relative;
+
+    width: min(75vw, 700px);
+    aspect-ratio: 1;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+
+    width: 100%;
+    height: 100%;
+
+    gap: 3px;
+
+    background: #333;
+    padding: 3px;
+
+    box-sizing: border-box;
+}
+
+
+/*
+ * Unsichtbare Ebene über dem gesamten Board.
+ * Darin werden die Schiebepfeile positioniert.
+ */
+.shift-controls {
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 20;
+
+    /*
+     * Die Ebene selbst soll keine Klicks blockieren.
+     * Nur die enthaltenen Buttons reagieren auf Klicks.
+     */
+    pointer-events: none;
+}
+
+
+.shift-button {
+    position: absolute;
+
+    width: 38px;
+    height: 38px;
+
+    padding: 0;
+
+    border: 1px solid #555;
+    border-radius: 4px;
+
+    background: white;
+
+    font-size: 22px;
+
+    cursor: pointer;
+
+    pointer-events: auto;
+}
+
+
+/*
+ * Mittelpunkt der verschiebbaren Reihen bzw. Spalten.
+ *
+ * Board-Indizes:
+ * 1 -> zweite Reihe/Spalte
+ * 3 -> vierte Reihe/Spalte
+ * 5 -> sechste Reihe/Spalte
+ */
+.shift-button[data-index="1"] {
+    --shift-position: 21.43%;
+}
+
+.shift-button[data-index="3"] {
+    --shift-position: 50%;
+}
+
+.shift-button[data-index="5"] {
+    --shift-position: 78.57%;
+}
+
+
+/* Von links einschieben -> Board bewegt sich nach rechts. */
+.shift-east {
+    left: -48px;
+    top: var(--shift-position);
+
+    transform: translateY(-50%);
+}
+
+
+/* Von rechts einschieben -> Board bewegt sich nach links. */
+.shift-west {
+    right: -48px;
+    top: var(--shift-position);
+
+    transform: translateY(-50%);
+}
+
+
+/* Von oben einschieben -> Board bewegt sich nach unten. */
+.shift-south {
+    top: -48px;
+    left: var(--shift-position);
+
+    transform: translateX(-50%);
+}
+
+
+/* Von unten einschieben -> Board bewegt sich nach oben. */
+.shift-north {
+    bottom: -48px;
+    left: var(--shift-position);
+
+    transform: translateX(-50%);
+}
+
+
+.tile-reachable {
+    outline: 4px solid #58a65c;
+    outline-offset: -4px;
+
+    cursor: pointer;
+}
+
+.tile-reachable:hover {
+    background: #c5dfc6;
+}
+
+
+.spare-tile-container {
+    width: 100px;
+    height: 100px;
+
+    margin-bottom: 12px;
+}
+
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}

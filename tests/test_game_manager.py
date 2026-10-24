@@ -488,3 +488,227 @@ def test_public_state_contains_reachable_positions():
     assert len(
         state.reachable_positions
     ) > 0
+
+
+def test_game_manager_can_select_character():
+    """
+    Prüft, ob ein Charakter über den GameManager
+    einem Spieler zugewiesen werden kann.
+    """
+    manager = GameManager()
+
+    game_id = manager.create_game()
+
+    player_index = manager.add_player(
+        game_id,
+        "Spieler 1"
+    )
+
+    manager.select_character(
+        game_id,
+        player_index,
+        CharacterType.MAGICIAN
+    )
+
+    player = manager.get_player(
+        game_id,
+        player_index
+    )
+
+    assert (
+        player.character
+        == CharacterType.MAGICIAN
+    )
+
+
+def test_game_manager_rejects_duplicate_character():
+    """
+    Prüft, ob ein bereits vergebener Charakter
+    auch über den GameManager nicht erneut
+    ausgewählt werden kann.
+    """
+    manager = GameManager()
+
+    game_id = manager.create_game()
+
+    first_player = manager.add_player(
+        game_id,
+        "Spieler 1"
+    )
+
+    second_player = manager.add_player(
+        game_id,
+        "Spieler 2"
+    )
+
+    manager.select_character(
+        game_id,
+        first_player,
+        CharacterType.MAGICIAN
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="bereits vergeben"
+    ):
+        manager.select_character(
+            game_id,
+            second_player,
+            CharacterType.MAGICIAN
+        )
+
+
+def test_public_state_contains_selected_characters():
+    """
+    Prüft, ob die gewählten Charaktere Bestandteil
+    des öffentlichen Spielerzustands sind.
+    """
+    manager = GameManager()
+
+    game_id = manager.create_game()
+
+    manager.add_player(
+        game_id,
+        "Spieler 1"
+    )
+
+    manager.add_player(
+        game_id,
+        "Spieler 2"
+    )
+
+    manager.select_character(
+        game_id,
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    manager.select_character(
+        game_id,
+        1,
+        CharacterType.GUARDIAN
+    )
+
+    state = manager.get_public_game_state(
+        game_id
+    )
+
+    assert (
+        state.players[0].character
+        == "Magier"
+    )
+
+    assert (
+        state.players[1].character
+        == "Wächter"
+    )
+
+
+def test_private_state_contains_character_information():
+    """
+    Prüft, ob der private Spielerzustand
+    Charakter und Fähigkeitsstatus enthält.
+    """
+    manager = GameManager()
+
+    game_id = manager.create_game()
+
+    manager.add_player(
+        game_id,
+        "Spieler 1"
+    )
+
+    manager.add_player(
+        game_id,
+        "Spieler 2"
+    )
+
+    manager.select_character(
+        game_id,
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    manager.select_character(
+        game_id,
+        1,
+        CharacterType.GUARDIAN
+    )
+
+    manager.start_game(
+        game_id,
+        1
+    )
+
+    state = manager.get_private_player_state(
+        game_id,
+        0
+    )
+
+    assert state.character == "Magier"
+
+    assert (
+        state.ability_used_for_current_target
+        is False
+    )
+
+    # Vor dem verpflichtenden Einschieben
+    # darf die Magier-Fähigkeit noch nicht
+    # verwendet werden.
+    assert (
+        state.ability_available
+        is False
+    )
+
+
+def test_magician_ability_becomes_available_after_shift():
+    """
+    Prüft, ob die Magier-Fähigkeit im privaten
+    Zustand nach dem Einschieben verfügbar wird.
+    """
+    manager = GameManager()
+
+    game_id = manager.create_game()
+
+    manager.add_player(
+        game_id,
+        "Magier"
+    )
+
+    manager.add_player(
+        game_id,
+        "Wächter"
+    )
+
+    manager.select_character(
+        game_id,
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    manager.select_character(
+        game_id,
+        1,
+        CharacterType.GUARDIAN
+    )
+
+    manager.start_game(
+        game_id,
+        1
+    )
+
+    game = manager.get_game(
+        game_id
+    )
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    state = manager.get_private_player_state(
+        game_id,
+        0
+    )
+
+    assert state.ability_available is True

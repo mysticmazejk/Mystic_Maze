@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from app.game.enums import CharacterType
+from app.game.enums import CharacterType, Direction
 from app.main import app
 from app.state import (
     connection_manager,
@@ -619,3 +619,196 @@ def test_unknown_websocket_action_returns_error():
             "Unbekannter Nachrichtentyp"
             in response["message"]
         )
+
+def test_magician_can_rotate_movable_tile_via_websocket():
+    """
+    Prüft, ob der Magier seine aktive Fähigkeit
+    über WebSocket einsetzen kann.
+    """
+    game_id = create_started_game()
+
+    game = game_manager.get_game(
+        game_id
+    )
+
+    # Spieler 0 ist in unserem Testspiel der Magier.
+    player = game.players[0]
+
+    assert (
+        player.character
+        == CharacterType.MAGICIAN
+    )
+
+    # Die Fähigkeit wird erst nach dem
+    # normalen Einschieben verfügbar.
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    # Bewegliche Kachel für den Test suchen.
+    target_row = None
+    target_column = None
+
+    for row in range(game.board.SIZE):
+        for column in range(game.board.SIZE):
+            tile = game.board.tiles[row][column]
+
+            if not tile.fixed:
+                target_row = row
+                target_column = column
+                break
+
+        if target_row is not None:
+            break
+
+    tile = game.board.tiles[
+        target_row
+    ][target_column]
+
+    old_rotation = tile.rotation
+
+    with client.websocket_connect(
+        f"/ws/games/{game_id}/players/0"
+    ) as websocket:
+
+        receive_initial_state(
+            websocket
+        )
+
+        websocket.send_json(
+            {
+                "type": "use_magician_ability",
+                "row": target_row,
+                "column": target_column
+            }
+        )
+
+        game_state = (
+            websocket.receive_json()
+        )
+
+        player_state = (
+            websocket.receive_json()
+        )
+
+        success = (
+            websocket.receive_json()
+        )
+
+        assert game_state["type"] == "game_state"
+        assert player_state["type"] == "player_state"
+
+        assert success == {
+            "type": "action_success",
+            "action": "use_magician_ability"
+        }
+
+        assert (
+            tile.rotation
+            == (old_rotation + 1) % 4
+        )
+
+        assert (
+            player_state["data"][
+                "ability_used_for_current_target"
+            ]
+            is True
+        )
+
+        assert (
+            player_state["data"][
+                "ability_available"
+            ]
+            is False
+        )
+
+
+def test_magician_cannot_rotate_fixed_tile_via_websocket():
+    """
+    Prüft, ob eine feste Kachel auch über eine
+    direkte WebSocket-Anfrage nicht gedreht werden kann.
+
+    Damit wird sichergestellt, dass die Regel nicht
+    ausschließlich vom Frontend durchgesetzt wird.
+    """
+    game_id = create_started_game()
+
+    game = game_manager.get_game(
+        game_id
+    )
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    # (2, 2) ist eine feste Kachel.
+    tile = game.board.tiles[2][2]
+
+    assert tile.fixed is True
+
+    old_rotation = tile.rotation
+
+    with client.websocket_connect(
+        f"/ws/games/{game_id}/players/0"
+    ) as websocket:
+
+        receive_initial_state(
+            websocket
+        )
+
+        websocket.send_json(
+            {
+                "type": "use_magician_ability",
+                "row": 2,
+                "column": 2
+            }
+        )
+
+        response = (
+            websocket.receive_json()
+        )
+
+        assert response["type"] == "error"
+
+        assert (
+            "Feste Kacheln"
+            in response["message"]
+        )
+
+    assert tile.rotation == old_rotation
+
+    assert (
+        game.players[0]
+        .ability_used_for_current_target
+        is False
+    )
+
+
+def test_guardian_has_no_active_magician_ability():
+    """
+    Prüft, ob der Wächter im privaten Zustand
+    keine aktive Magier-Fähigkeit angeboten bekommt.
+    """
+    game_id = create_started_game()
+
+    game = game_manager.get_game(
+        game_id
+    )
+
+    # Spieler 1 ist der Wächter.
+    game.current_player_index = 1
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    state = game_manager.get_private_player_state(
+        game_id,
+        1
+    )
+
+    assert state.character == "Wächter"
+    assert state.ability_available is False

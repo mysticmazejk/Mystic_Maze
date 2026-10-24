@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Mystic Maze – Spiel</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+</head>
+
+<body>
+
+<main class="game-container">
+
+    <header class="game-header">
+        <div>
+            <h1>Mystic Maze</h1>
+
+            <p>
+                Spiel-ID:
+                <strong id="game-id"></strong>
+            </p>
+        </div>
+
+        <div>
+            <p id="turn-status">
+                Spiel wird geladen...
+            </p>
+
+            <p>
+                Verbindung:
+                <strong id="connection-status">
+                    wird aufgebaut...
+                </strong>
+            </p>
+        </div>
+    </header>
+
+
+    <section class="game-layout">
+
+        <div class="board-area">
+
+            <div class="board-shell">
+
+                <div
+                    id="shift-controls"
+                    class="shift-controls"
+                ></div>
+
+                <div
+                    id="board"
+                    class="board"
+                ></div>
+
+            </div>
+
+        </div>
+
+
+        <aside class="game-sidebar">
+
+            <section>
+                <h2>Dein Ziel</h2>
+
+                <p id="current-target">
+                    Wird geladen...
+                </p>
+            </section>
+
+
+            <section>
+                <h2>Freies Plättchen</h2>
+
+                <div
+                    id="spare-tile"
+                    class="spare-tile-container"
+                ></div>
+
+                <button
+                    id="rotate-spare-button"
+                    type="button"
+                >
+                    Plättchen drehen
+                </button>
+            </section>
+
+
+            <section>
+                <h2>Spieler</h2>
+
+                <ul id="player-list"></ul>
+            </section>
+
+            <section>
+                <h2>Charakter</h2>
+
+                <p>
+                    <strong id="character-name">
+                        Wird geladen...
+                    </strong>
+                </p>
+
+                <p id="ability-status"></p>
+
+                <button
+                    id="magician-ability-button"
+                    type="button"
+                    hidden
+                >
+                    Kachel drehen
+                </button>
+            </section>
+
+
+            <section>
+                <h2>Zugstatus</h2>
+
+                <p id="shift-status"></p>
+                <p id="move-status"></p>
+
+                <button
+                    id="end-turn-button"
+                    type="button"
+                >
+                    Zug beenden
+                </button>
+            </section>
+
+
+            <p
+                id="error-message"
+                class="error"
+            ></p>
+
+        </aside>
+
+    </section>
+
+</main>
+
+<script src="/static/js/game.js"></script>
+
+</body>
+</html>
