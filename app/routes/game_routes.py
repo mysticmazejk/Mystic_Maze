@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from app.schemas.game_schemas import GamePublicState
 from app.state import game_manager
 from app.realtime import publish_game_state
+from app.game.enums import CharacterType
 
 router = APIRouter(
     prefix="/games",
@@ -24,6 +25,11 @@ class StartGameRequest(BaseModel):
     """
     targets_per_player: int
 
+class SelectCharacterRequest(BaseModel):
+    """
+    Daten zur Auswahl eines Spielcharakters.
+    """
+    character: CharacterType
 
 @router.post("")
 def create_game():
@@ -131,5 +137,51 @@ def get_game(
     except ValueError as error:
         raise HTTPException(
             status_code=404,
+            detail=str(error)
+        )
+
+@router.put(
+    "/{game_id}/players/{player_index}/character"
+)
+async def select_character(
+    game_id: str,
+    player_index: int,
+    request: SelectCharacterRequest
+):
+    """
+    Weist einem Spieler einen verfügbaren Charakter zu.
+
+    :param game_id: ID des Spiels.
+    :param player_index: Index des Spielers.
+    :param request: Gewählter Charakter.
+    :return: Bestätigung der Charakterauswahl.
+    """
+    try:
+        game_manager.select_character(
+            game_id,
+            player_index,
+            request.character
+        )
+
+        player = game_manager.get_player(
+            game_id,
+            player_index
+        )
+
+        # Alle verbundenen Lobby-Clients müssen die
+        # neue Charakterbelegung sofort sehen.
+        await publish_game_state(
+            game_id
+        )
+
+        return {
+            "game_id": game_id.upper(),
+            "player_index": player_index,
+            "character": player.character.value
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
             detail=str(error)
         )

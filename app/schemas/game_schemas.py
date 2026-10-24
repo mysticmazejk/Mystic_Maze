@@ -39,8 +39,23 @@ class PlayerPublicState(BaseModel):
     name: str
     row: int
     column: int
+    character: str | None
     completed_target_count: int
 
+class PlayerPrivateState(BaseModel):
+    """
+    Nur für den jeweiligen Spieler bestimmte Informationen.
+    """
+    player_index: int
+
+    character: str | None
+
+    current_target: str | None
+    remaining_target_count: int
+    completed_targets: list[str]
+
+    ability_available: bool
+    ability_used_for_current_target: bool
 
 class GamePublicState(BaseModel):
     """
@@ -63,16 +78,6 @@ class GamePublicState(BaseModel):
     players: list[PlayerPublicState]
 
     reachable_positions: list[PositionPublicState]
-
-
-class PlayerPrivateState(BaseModel):
-    """
-    Nur für den jeweiligen Spieler bestimmte Informationen.
-    """
-    player_index: int
-    current_target: str | None
-    remaining_target_count: int
-    completed_targets: list[str]
 
 
 class PositionPublicState(BaseModel):

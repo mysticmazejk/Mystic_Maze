@@ -50,7 +50,12 @@ async def handle_game_action(
                 player_index,
                 message
             )
-
+        elif action_type == "use_magician_ability":
+            _handle_magician_ability(
+                game_id,
+                player_index,
+                message
+            )
         elif action_type == "end_turn":
             game_manager.end_turn(
                 game_id,
@@ -170,6 +175,48 @@ def _handle_move(
         )
 
     game_manager.move_player(
+        game_id,
+        player_index,
+        row,
+        column
+    )
+
+def _handle_magician_ability(
+    game_id: str,
+    player_index: int,
+    message: dict
+) -> None:
+    """
+    Verarbeitet die aktive Fähigkeit des Magiers.
+
+    :param game_id: ID des Spiels.
+    :param player_index: Index des Spielers.
+    :param message: Empfangene WebSocket-Nachricht.
+    :raises ValueError: Wenn Positionsdaten fehlen oder ungültig sind.
+    """
+
+    if "row" not in message:
+        raise ValueError(
+            "Für die Magier-Fähigkeit fehlt die Zeile."
+        )
+
+    if "column" not in message:
+        raise ValueError(
+            "Für die Magier-Fähigkeit fehlt die Spalte."
+        )
+
+    row = message["row"]
+    column = message["column"]
+
+    if (
+        not isinstance(row, int)
+        or not isinstance(column, int)
+    ):
+        raise ValueError(
+            "Zeile und Spalte müssen Ganzzahlen sein."
+        )
+
+    game_manager.use_magician_ability(
         game_id,
         player_index,
         row,

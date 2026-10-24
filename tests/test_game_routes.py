@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.game.enums import CharacterType
 from app.main import app
 from app.state import (
     connection_manager,
@@ -18,7 +19,6 @@ def reset_application_state():
 
     Dadurch beeinflussen sich die API-Tests nicht gegenseitig.
     """
-
     game_manager.games.clear()
     connection_manager.connections.clear()
 
@@ -28,11 +28,98 @@ def reset_application_state():
     connection_manager.connections.clear()
 
 
+def create_game() -> str:
+    """
+    Erstellt ein neues Spiel über die REST-API.
+
+    :return: ID des erzeugten Spiels.
+    """
+    response = client.post(
+        "/games"
+    )
+
+    assert response.status_code == 200
+
+    return response.json()["game_id"]
+
+
+def add_player(
+    game_id: str,
+    name: str
+) -> dict:
+    """
+    Fügt einem Spiel über die REST-API einen Spieler hinzu.
+
+    :param game_id: ID des Spiels.
+    :param name: Name des Spielers.
+    :return: JSON-Antwort des Servers.
+    """
+    response = client.post(
+        f"/games/{game_id}/players",
+        json={
+            "name": name
+        }
+    )
+
+    assert response.status_code == 200
+
+    return response.json()
+
+
+def create_game_with_two_players() -> str:
+    """
+    Erstellt über die REST-API ein Spiel mit zwei Spielern.
+
+    Das Spiel wird noch nicht gestartet.
+
+    :return: ID des erzeugten Spiels.
+    """
+    game_id = create_game()
+
+    add_player(
+        game_id,
+        "Spieler 1"
+    )
+
+    add_player(
+        game_id,
+        "Spieler 2"
+    )
+
+    return game_id
+
+
+def select_standard_characters(
+    game_id: str
+) -> None:
+    """
+    Vergibt die beiden verfügbaren Charaktere für ein Testspiel.
+
+    Diese direkte Verwendung der Game-Klasse dient nur dem
+    Test-Setup, solange die Charakterauswahl noch keinen
+    eigenen REST-Endpunkt besitzt.
+
+    :param game_id: ID des vorzubereitenden Spiels.
+    """
+    game = game_manager.get_game(
+        game_id
+    )
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
+    )
+
+
 def test_create_game():
     """
     Prüft, ob über die API ein neues Spiel erstellt werden kann.
     """
-
     response = client.post(
         "/games"
     )
@@ -55,14 +142,7 @@ def test_join_game():
     Prüft, ob ein Spieler einem vorhandenen Spiel
     über die API beitreten kann.
     """
-
-    create_response = client.post(
-        "/games"
-    )
-
-    game_id = (
-        create_response.json()["game_id"]
-    )
+    game_id = create_game()
 
     response = client.post(
         f"/games/{game_id}/players",
@@ -84,17 +164,11 @@ def test_second_player_receives_index_one():
     """
     Prüft, ob der zweite Spieler den Index 1 erhält.
     """
+    game_id = create_game()
 
-    game_id = (
-        client.post("/games")
-        .json()["game_id"]
-    )
-
-    client.post(
-        f"/games/{game_id}/players",
-        json={
-            "name": "Spieler 1"
-        }
+    add_player(
+        game_id,
+        "Spieler 1"
     )
 
     response = client.post(
@@ -113,11 +187,7 @@ def test_join_game_trims_player_name():
     Prüft, ob Leerzeichen im Spielernamen
     beim Beitritt entfernt werden.
     """
-
-    game_id = (
-        client.post("/games")
-        .json()["game_id"]
-    )
+    game_id = create_game()
 
     response = client.post(
         f"/games/{game_id}/players",
@@ -135,17 +205,11 @@ def test_duplicate_player_name_is_rejected():
     Prüft, ob doppelte Spielernamen über die API
     abgelehnt werden.
     """
+    game_id = create_game()
 
-    game_id = (
-        client.post("/games")
-        .json()["game_id"]
-    )
-
-    client.post(
-        f"/games/{game_id}/players",
-        json={
-            "name": "Noah"
-        }
+    add_player(
+        game_id,
+        "Noah"
     )
 
     response = client.post(
@@ -168,11 +232,7 @@ def test_empty_player_name_is_rejected():
     Prüft, ob ein leerer Spielername
     über die API abgelehnt wird.
     """
-
-    game_id = (
-        client.post("/games")
-        .json()["game_id"]
-    )
+    game_id = create_game()
 
     response = client.post(
         f"/games/{game_id}/players",
@@ -192,27 +252,9 @@ def test_empty_player_name_is_rejected():
 def test_get_lobby_state():
     """
     Prüft, ob der öffentliche Zustand
-    eines Spiels abgerufen werden kann.
+    eines noch nicht gestarteten Spiels abgerufen werden kann.
     """
-
-    game_id = (
-        client.post("/games")
-        .json()["game_id"]
-    )
-
-    client.post(
-        f"/games/{game_id}/players",
-        json={
-            "name": "Spieler 1"
-        }
-    )
-
-    client.post(
-        f"/games/{game_id}/players",
-        json={
-            "name": "Spieler 2"
-        }
-    )
+    game_id = create_game_with_two_players()
 
     response = client.get(
         f"/games/{game_id}"
@@ -244,18 +286,13 @@ def test_public_state_contains_board():
     Prüft, ob der öffentliche Spielzustand
     das vollständige Board enthält.
     """
-
-    game_id = (
-        client.post("/games")
-        .json()["game_id"]
-    )
+    game_id = create_game()
 
     response = client.get(
         f"/games/{game_id}"
     )
 
     assert response.status_code == 200
-    print(response.json())
 
     board = response.json()["board"]
 
@@ -270,27 +307,15 @@ def test_public_state_contains_board():
 
 def test_start_game():
     """
-    Prüft, ob ein Spiel mit zwei Spielern
-    über die API gestartet werden kann.
+    Prüft, ob ein vollständig vorbereitetes Spiel
+    mit zwei Spielern über die API gestartet werden kann.
     """
+    game_id = create_game_with_two_players()
 
-    game_id = (
-        client.post("/games")
-        .json()["game_id"]
-    )
-
-    client.post(
-        f"/games/{game_id}/players",
-        json={
-            "name": "Spieler 1"
-        }
-    )
-
-    client.post(
-        f"/games/{game_id}/players",
-        json={
-            "name": "Spieler 2"
-        }
+    # Bis die Charakterauswahl selbst über die API erfolgt,
+    # werden die erforderlichen Charaktere im Test-Setup gesetzt.
+    select_standard_characters(
+        game_id
     )
 
     response = client.post(
@@ -320,22 +345,52 @@ def test_start_game():
     ) == 3
 
 
+def test_game_cannot_start_without_character_selection():
+    """
+    Prüft, ob die REST-API einen Spielstart ablehnt,
+    wenn noch nicht alle Spieler einen Charakter gewählt haben.
+    """
+    game_id = create_game_with_two_players()
+
+    # Nur Spieler 0 erhält einen Charakter.
+    # Spieler 1 bleibt bewusst ohne Auswahl.
+    game = game_manager.get_game(
+        game_id
+    )
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    response = client.post(
+        f"/games/{game_id}/start",
+        json={
+            "targets_per_player": 3
+        }
+    )
+
+    assert response.status_code == 400
+
+    assert (
+        "Charakter wählen"
+        in response.json()["detail"]
+    )
+
+
 def test_game_cannot_start_with_one_player():
     """
     Prüft, ob ein Spiel mit nur einem Spieler
     nicht gestartet werden kann.
+
+    Die Mindestspieler-Regel wird vor der Charakterprüfung
+    ausgewertet.
     """
+    game_id = create_game()
 
-    game_id = (
-        client.post("/games")
-        .json()["game_id"]
-    )
-
-    client.post(
-        f"/games/{game_id}/players",
-        json={
-            "name": "Spieler 1"
-        }
+    add_player(
+        game_id,
+        "Spieler 1"
     )
 
     response = client.post(
@@ -356,9 +411,8 @@ def test_game_cannot_start_with_one_player():
 def test_unknown_game_returns_error():
     """
     Prüft, ob beim Abruf eines unbekannten Spiels
-    ein HTTP-Fehler zurückgegeben wird.
+    ein HTTP-404-Fehler zurückgegeben wird.
     """
-
     response = client.get(
         "/games/ABC123"
     )
@@ -371,11 +425,7 @@ def test_game_id_is_case_insensitive():
     Prüft, ob eine Spiel-ID auch in Kleinbuchstaben
     verwendet werden kann.
     """
-
-    game_id = (
-        client.post("/games")
-        .json()["game_id"]
-    )
+    game_id = create_game()
 
     response = client.get(
         f"/games/{game_id.lower()}"

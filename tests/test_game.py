@@ -1,7 +1,13 @@
 import pytest
 
-from app.game.enums import Direction, GateType, TileType
+from app.game.enums import (
+    CharacterType,
+    Direction,
+    GateType,
+    TileType,
+)
 from app.game.game import Game
+from app.game.player import Player
 from app.game.target import Target
 from app.game.tile import Tile
 
@@ -10,15 +16,31 @@ def create_started_game(
     targets_per_player: int = 1
 ) -> Game:
     """
-    Erstellt ein gestartetes Spiel mit zwei Spielern.
+    Erstellt ein gestartetes Standard-Testspiel mit zwei Spielern.
+
+    Spieler 0 erhält den Charakter Magier und Spieler 1 den Charakter
+    Wächter. Dadurch erfüllt das Testspiel die verpflichtende
+    Charakterauswahl vor dem Spielstart.
 
     :param targets_per_player: Anzahl der Zielkarten pro Spieler.
-    :return: Gestartetes Game-Objekt.
+    :return: Vollständig gestartetes Game-Objekt.
     """
     game = Game()
 
     game.add_player("Spieler 1")
     game.add_player("Spieler 2")
+
+    # Ein gestartetes Spiel benötigt für jeden Spieler
+    # einen eindeutig vergebenen Charakter.
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
+    )
 
     game.start_game(
         targets_per_player
@@ -90,7 +112,7 @@ def test_player_wraps_around_board():
     player.row = 1
     player.column = 6
 
-    # Verhindert, dass ein zufällig als spare_tile gewähltes Portal
+    # Verhindert, dass ein zufällig als Spare Tile gewähltes Portal
     # den Spieler nach dem Wrap direkt weiter teleportiert.
     game.board.spare_tile.portal = False
 
@@ -196,8 +218,13 @@ def test_leaf_key_opens_only_leaf_gate():
         Target.BLATTSCHLUESSEL
     )
 
-    assert game.is_gate_open(GateType.LEAF)
-    assert not game.is_gate_open(GateType.MOON)
+    assert game.is_gate_open(
+        GateType.LEAF
+    )
+
+    assert not game.is_gate_open(
+        GateType.MOON
+    )
 
 
 def test_moon_key_opens_only_moon_gate():
@@ -210,14 +237,19 @@ def test_moon_key_opens_only_moon_gate():
         Target.MONDSCHLUESSEL
     )
 
-    assert game.is_gate_open(GateType.MOON)
-    assert not game.is_gate_open(GateType.LEAF)
+    assert game.is_gate_open(
+        GateType.MOON
+    )
+
+    assert not game.is_gate_open(
+        GateType.LEAF
+    )
 
 
 def test_normal_target_cannot_be_activated_as_key():
     """
-    Prüft, ob ein normales Target nicht als Schlüssel aktiviert
-    werden kann.
+    Prüft, ob ein normales Target nicht als Schlüssel
+    aktiviert werden kann.
     """
     game = Game()
 
@@ -234,8 +266,8 @@ def test_locked_gate_is_blocked():
     """
     game = Game()
 
-    # Kontrollierte Testumgebung erzeugen:
-    # Alle Kacheln sind zunächst nur vertikal geöffnet.
+    # Kontrollierte Testumgebung:
+    # Alle Kacheln werden zunächst nur vertikal geöffnet.
     for row in range(game.board.SIZE):
         for column in range(game.board.SIZE):
             game.board.tiles[row][column] = Tile(
@@ -243,10 +275,9 @@ def test_locked_gate_is_blocked():
                 rotation=0
             )
 
-    # Horizontaler Weg:
+    # Anschließend wird ein horizontaler Testweg erzeugt:
     #
-    # Spieler --> Blatttor --> Ziel
-    #
+    # Spieler -> Blatttor -> Ziel
     game.board.tiles[1][1] = Tile(
         TileType.STRAIGHT,
         rotation=1
@@ -274,10 +305,10 @@ def test_locked_gate_is_blocked():
         )
     )
 
-    # Das geschlossene Tor darf nicht betreten werden.
+    # Das geschlossene Tor selbst darf nicht betreten werden.
     assert (1, 2) not in reachable
 
-    # Dadurch ist auch das Feld dahinter nicht erreichbar.
+    # Dadurch ist auch das Feld hinter dem Tor nicht erreichbar.
     assert (1, 3) not in reachable
 
 
@@ -311,7 +342,7 @@ def test_open_gate_is_reachable():
         rotation=1
     )
 
-    # Passenden Schlüssel aktivieren.
+    # Der passende Schlüssel wird global aktiviert.
     game.activate_key(
         Target.BLATTSCHLUESSEL
     )
@@ -466,8 +497,8 @@ def test_portal_teleports_player_to_other_portal():
 
     player = game.get_current_player()
 
-    # Vorhandene Portale entfernen,
-    # damit der Test vollständig kontrolliert ist.
+    # Vorhandene Portale entfernen, damit der Test
+    # vollständig kontrolliert durchgeführt werden kann.
     for row in range(game.board.SIZE):
         for column in range(game.board.SIZE):
             game.board.tiles[row][column].portal = False
@@ -511,13 +542,13 @@ def test_portal_does_not_work_if_other_portal_is_spare_tile():
         for column in range(game.board.SIZE):
             game.board.tiles[row][column].portal = False
 
-    # Nur ein Portal befindet sich auf dem Brett.
+    # Nur ein Portal befindet sich auf dem Spielbrett.
     game.board.tiles[1][1] = Tile(
         TileType.CORNER,
         portal=True
     )
 
-    # Zweites Portal ist aktuell das Schiebeplättchen.
+    # Das zweite Portal ist aktuell das freie Schiebeplättchen.
     game.board.spare_tile = Tile(
         TileType.CORNER,
         portal=True
@@ -530,7 +561,8 @@ def test_portal_does_not_work_if_other_portal_is_spare_tile():
         player
     )
 
-    # Spieler bleibt auf seinem Portal stehen.
+    # Ohne zweites Portal auf dem Board findet
+    # keine Teleportation statt.
     assert player.row == 1
     assert player.column == 1
 
@@ -631,7 +663,8 @@ def test_pushed_out_player_triggers_inserted_tile_effect():
     assert player.row == 1
     assert player.column == 0
 
-    # Die Eule wurde dadurch gefunden.
+    # Die Eule wurde durch das tatsächliche Betreten
+    # der neu eingeschobenen Kachel gefunden.
     assert player.targets == []
 
     assert player.completed_targets == [
@@ -752,19 +785,31 @@ def test_cannot_end_turn_after_game_finished():
     ):
         game.end_turn()
 
+
 def test_spare_tile_can_be_rotated_before_shift():
+    """
+    Prüft, ob das freie Schiebeplättchen vor dem Einschieben
+    im aktuellen Zug gedreht werden kann.
+    """
     game = create_started_game()
 
-    old_rotation = game.board.spare_tile.rotation
+    old_rotation = (
+        game.board.spare_tile.rotation
+    )
 
     game.rotate_spare_tile()
 
-    assert game.board.spare_tile.rotation == (
-        old_rotation + 1
-    ) % 4
+    assert (
+        game.board.spare_tile.rotation
+        == (old_rotation + 1) % 4
+    )
 
 
 def test_spare_tile_cannot_be_rotated_after_shift():
+    """
+    Prüft, ob das freie Schiebeplättchen nach dem Einschieben
+    im selben Zug nicht mehr gedreht werden kann.
+    """
     game = create_started_game()
 
     game.insert_spare_tile(
@@ -778,7 +823,12 @@ def test_spare_tile_cannot_be_rotated_after_shift():
     ):
         game.rotate_spare_tile()
 
+
 def test_player_does_not_win_with_open_targets():
+    """
+    Prüft, ob ein Spieler auf seinem Startfeld nicht gewinnt,
+    solange noch persönliche Ziele offen sind.
+    """
     game = create_started_game()
 
     player = game.players[0]
@@ -790,12 +840,19 @@ def test_player_does_not_win_with_open_targets():
     player.row = player.start_row
     player.column = player.start_column
 
-    assert not game._check_winner(player)
+    assert not game._check_winner(
+        player
+    )
+
     assert not game.finished
     assert game.winner is None
 
 
 def test_player_does_not_win_away_from_start():
+    """
+    Prüft, ob ein Spieler nach Abschluss aller Ziele nicht gewinnt,
+    solange er sich nicht auf seinem Startfeld befindet.
+    """
     game = create_started_game()
 
     player = game.players[0]
@@ -805,11 +862,18 @@ def test_player_does_not_win_away_from_start():
     player.row = 1
     player.column = 1
 
-    assert not game._check_winner(player)
+    assert not game._check_winner(
+        player
+    )
+
     assert not game.finished
 
 
 def test_player_wins_after_all_targets_and_return_to_start():
+    """
+    Prüft, ob ein Spieler gewinnt, wenn alle persönlichen Ziele
+    abgeschlossen sind und er zu seinem Startfeld zurückkehrt.
+    """
     game = create_started_game()
 
     player = game.players[0]
@@ -819,13 +883,19 @@ def test_player_wins_after_all_targets_and_return_to_start():
     player.row = player.start_row
     player.column = player.start_column
 
-    assert game._check_winner(player)
+    assert game._check_winner(
+        player
+    )
 
     assert game.finished
     assert game.winner == player
 
 
 def test_game_requires_two_players_to_start():
+    """
+    Prüft, ob ein Spiel erst mit mindestens zwei Spielern
+    gestartet werden kann.
+    """
     game = Game()
 
     game.add_player("Spieler 1")
@@ -838,6 +908,10 @@ def test_game_requires_two_players_to_start():
 
 
 def test_game_cannot_be_started_twice():
+    """
+    Prüft, ob ein bereits gestartetes Spiel nicht erneut
+    gestartet werden kann.
+    """
     game = create_started_game()
 
     with pytest.raises(
@@ -848,13 +922,19 @@ def test_game_cannot_be_started_twice():
 
 
 def test_players_cannot_be_added_after_start():
+    """
+    Prüft, ob nach dem Spielstart keine weiteren Spieler
+    mehr hinzugefügt werden können.
+    """
     game = create_started_game()
 
     with pytest.raises(
         ValueError,
         match="Nach Spielstart"
     ):
-        game.add_player("Spieler 3")
+        game.add_player(
+            "Spieler 3"
+        )
 
 
 def test_get_player_by_index():
@@ -866,7 +946,9 @@ def test_get_player_by_index():
     game.add_player("Spieler 1")
     game.add_player("Spieler 2")
 
-    player = game.get_player(1)
+    player = game.get_player(
+        1
+    )
 
     assert player.name == "Spieler 2"
 
@@ -883,7 +965,9 @@ def test_get_player_with_invalid_index_fails():
         ValueError,
         match="nicht gefunden"
     ):
-        game.get_player(1)
+        game.get_player(
+            1
+        )
 
 
 def test_negative_player_index_fails():
@@ -898,7 +982,10 @@ def test_negative_player_index_fails():
         ValueError,
         match="nicht gefunden"
     ):
-        game.get_player(-1)
+        game.get_player(
+            -1
+        )
+
 
 def test_all_shifts_available_at_start():
     """
@@ -911,7 +998,10 @@ def test_all_shifts_available_at_start():
         game.get_allowed_shifts()
     )
 
+    # Drei verschiebbare Reihen/Spalten mit jeweils
+    # vier möglichen Einschubrichtungen ergeben 12 Optionen.
     assert len(allowed_shifts) == 12
+
 
 def test_no_shift_available_after_shift():
     """
@@ -925,7 +1015,11 @@ def test_no_shift_available_after_shift():
         Direction.EAST
     )
 
-    assert game.get_allowed_shifts() == []
+    assert (
+        game.get_allowed_shifts()
+        == []
+    )
+
 
 def test_reverse_shift_not_available_next_turn():
     """
@@ -945,6 +1039,8 @@ def test_reverse_shift_not_available_next_turn():
         game.get_allowed_shifts()
     )
 
+    # Der direkte Gegenzug auf demselben Index
+    # muss aus den erlaubten Optionen entfernt sein.
     assert (
         1,
         Direction.WEST
@@ -965,6 +1061,7 @@ def test_no_reachable_positions_before_shift():
         == set()
     )
 
+
 def test_reachable_positions_available_after_shift():
     """
     Prüft, ob nach dem Verschieben erreichbare
@@ -983,8 +1080,8 @@ def test_reachable_positions_available_after_shift():
 
     player = game.get_current_player()
 
-    # Die eigene Position gehört bei der BFS ebenfalls
-    # zu den erreichbaren Positionen.
+    # Die eigene Position gehört bei der Wegfindung ebenfalls
+    # zur Menge der erreichbaren Positionen.
     assert (
         player.row,
         player.column
@@ -1022,4 +1119,197 @@ def test_no_reachable_positions_after_player_moved():
     assert (
         game.get_reachable_positions_for_current_player()
         == set()
+    )
+
+
+def test_character_cannot_be_selected_twice():
+    """
+    Prüft, ob derselbe Charakter innerhalb einer Partie
+    nicht gleichzeitig von mehreren Spielern gewählt werden kann.
+    """
+    game = Game()
+
+    game.add_player("Spieler 1")
+    game.add_player("Spieler 2")
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    # Der Magier ist bereits vergeben und darf deshalb
+    # nicht zusätzlich Spieler 1 zugewiesen werden.
+    with pytest.raises(
+        ValueError,
+        match="bereits vergeben"
+    ):
+        game.select_character(
+            1,
+            CharacterType.MAGICIAN
+        )
+
+
+def test_game_cannot_start_without_character_selection():
+    """
+    Prüft, ob das Spiel nicht gestartet werden kann,
+    solange mindestens ein Spieler keinen Charakter gewählt hat.
+    """
+    game = Game()
+
+    game.add_player("Spieler 1")
+    game.add_player("Spieler 2")
+
+    # Nur Spieler 0 wählt einen Charakter.
+    # Spieler 1 besitzt weiterhin character=None.
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Charakter wählen"
+    ):
+        game.start_game(
+            1
+        )
+
+
+def test_guardian_can_pass_closed_gate():
+    """
+    Prüft die passive Fähigkeit des Wächters.
+
+    Für den Wächter dürfen geschlossene Tore bei der Berechnung
+    seiner Bewegungsmöglichkeiten nicht als blockierte Positionen
+    behandelt werden.
+    """
+    game = Game()
+
+    game.add_player("Wächter")
+    game.add_player("Magier")
+
+    game.select_character(
+        0,
+        CharacterType.GUARDIAN
+    )
+
+    player = game.players[0]
+
+    blocked_positions = (
+        game._get_blocked_positions_for_player(
+            player
+        )
+    )
+
+    # Der Wächter ignoriert geschlossene Tore vollständig.
+    assert blocked_positions == set()
+
+
+def test_magician_ability_can_only_be_used_once_per_target():
+    """
+    Prüft die aktive Fähigkeit des Magiers.
+
+    Der Magier darf nach dem Einschieben genau einmal für das
+    aktuell gesuchte persönliche Ziel eine Kachel auf dem
+    Spielbrett um 90 Grad drehen.
+    """
+    game = Game()
+
+    game.add_player("Magier")
+    game.add_player("Wächter")
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
+    )
+
+    game.start_game(
+        1
+    )
+
+    player = game.players[0]
+
+    # Die Fähigkeit ist erst nach dem regulären
+    # Einschieben des freien Plättchens verfügbar.
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    old_rotation = (
+        game.board.tiles[2][2].rotation
+    )
+
+    game.use_magician_ability(
+        player,
+        2,
+        2
+    )
+
+    # Die gewählte Board-Kachel wurde genau
+    # um einen Rotationsschritt gedreht.
+    assert (
+        game.board.tiles[2][2].rotation
+        == (old_rotation + 1) % 4
+    )
+
+    # Die Fähigkeit ist für das aktuelle Ziel verbraucht.
+    assert (
+        player.ability_used_for_current_target
+        is True
+    )
+
+    # Eine zweite Verwendung für dasselbe aktuelle Ziel
+    # muss vom Spiel abgelehnt werden.
+    with pytest.raises(
+        ValueError,
+        match="bereits verwendet"
+    ):
+        game.use_magician_ability(
+            player,
+            2,
+            3
+        )
+
+
+def test_magician_ability_resets_after_target_completion():
+    """
+    Prüft, ob die Magier-Fähigkeit beim Wechsel zum nächsten
+    persönlichen Ziel wieder verfügbar wird.
+    """
+    player = Player(
+        name="Magier",
+        row=0,
+        column=0,
+        character=CharacterType.MAGICIAN
+    )
+
+    player.targets = [
+        Target.EULE,
+        Target.DRACHE,
+    ]
+
+    # Für das aktuelle Ziel "Eule" wurde die Fähigkeit
+    # bereits verwendet.
+    player.ability_used_for_current_target = True
+
+    player.complete_current_target()
+
+    # Nach Abschluss der Eule wird der Drache
+    # zum neuen aktuellen persönlichen Ziel.
+    assert (
+        player.get_current_target()
+        == Target.DRACHE
+    )
+
+    # Da ein neues Ziel gesucht wird, darf der Magier
+    # seine Fähigkeit erneut verwenden.
+    assert (
+        player.ability_used_for_current_target
+        is False
     )

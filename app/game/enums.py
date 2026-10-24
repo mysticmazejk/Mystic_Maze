@@ -1,12 +1,10 @@
 from enum import Enum
 
-
 class Direction(Enum):
     NORTH = "north"
     EAST = "east"
     SOUTH = "south"
     WEST = "west"
-
 
 class TileType(Enum):
     STRAIGHT = "straight"
@@ -17,3 +15,7 @@ class TileType(Enum):
 class GateType(Enum):
     LEAF = "leaf"
     MOON = "moon"
+
+class CharacterType(Enum):
+    MAGICIAN = "Magier"
+    GUARDIAN = "Wächter"

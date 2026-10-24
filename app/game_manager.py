@@ -1,6 +1,6 @@
 import secrets
 
-from app.game.enums import Direction
+from app.game.enums import Direction, CharacterType
 from app.game.game import Game
 from app.game.player import Player
 from app.game.tile import Tile
@@ -198,6 +198,11 @@ class GameManager:
                 name=player.name,
                 row=player.row,
                 column=player.column,
+                character=(
+                    player.character.value
+                    if player.character is not None
+                    else None
+                ),
                 completed_target_count=len(
                     player.completed_targets
                 )
@@ -254,10 +259,18 @@ class GameManager:
         """
         Erstellt den privaten Zustand eines einzelnen Spielers.
 
+        Der private Zustand enthält neben den persönlichen Zielinformationen
+        auch den gewählten Charakter und den aktuellen Status der
+        Charakterfähigkeit.
+
         :param game_id: ID des Spiels.
         :param player_index: Index des Spielers.
         :return: Privater Spielerzustand.
         """
+        game = self.get_game(
+            game_id
+        )
+
         player = self.get_player(
             game_id,
             player_index
@@ -269,18 +282,47 @@ class GameManager:
 
         return PlayerPrivateState(
             player_index=player_index,
+
+            # Der eigene Charakter darf dem Spieler
+            # vollständig angezeigt werden.
+            character=(
+                player.character.value
+                if player.character is not None
+                else None
+            ),
+
+            # Das aktuell gesuchte persönliche Target
+            # ist nur für den jeweiligen Spieler sichtbar.
             current_target=(
                 current_target.value
                 if current_target is not None
                 else None
             ),
+
+            # Anzahl der noch offenen persönlichen Ziele.
             remaining_target_count=len(
                 player.targets
             ),
+
+            # Bereits abgeschlossene persönliche Ziele.
             completed_targets=[
                 target.value
                 for target in player.completed_targets
-            ]
+            ],
+
+            # Der Server entscheidet zentral, ob die
+            # Magier-Fähigkeit aktuell eingesetzt werden darf.
+            ability_available=(
+                game.can_use_magician_ability(
+                    player
+                )
+            ),
+
+            # Gibt an, ob die Magier-Fähigkeit für das
+            # aktuell gesuchte Ziel bereits verbraucht wurde.
+            ability_used_for_current_target=(
+                player.ability_used_for_current_target
+            )
         )
 
     def _ensure_current_player(
@@ -514,4 +556,56 @@ class GameManager:
             tiles=tiles,
             spare_tile=spare_tile,
             allowed_shifts=allowed_shifts
+        )
+
+    def select_character(
+            self,
+            game_id: str,
+            player_index: int,
+            character: CharacterType
+    ) -> None:
+        """
+        Weist einem Spieler vor Spielstart einen Charakter zu.
+
+        :param game_id: ID des Spiels.
+        :param player_index: Index des Spielers.
+        :param character: Gewählter Charakter.
+        """
+        game = self.get_game(
+            game_id
+        )
+
+        game.select_character(
+            player_index,
+            character
+        )
+
+    def use_magician_ability(
+            self,
+            game_id: str,
+            player_index: int,
+            row: int,
+            column: int
+    ) -> None:
+        """
+        Führt die aktive Fähigkeit des Magiers aus.
+
+        :param game_id: ID des Spiels.
+        :param player_index: Index des Magiers.
+        :param row: Zeile der zu drehenden Kachel.
+        :param column: Spalte der zu drehenden Kachel.
+        """
+        game = self.get_game(
+            game_id
+        )
+
+        player = self.get_player(
+            game_id,
+            player_index
+        )
+
+        game.use_magician_ability(
+            player,
+            row,
+            column
         )

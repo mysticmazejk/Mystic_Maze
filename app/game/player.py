@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from app.game.target import Target
+from app.game.enums import CharacterType
 
 
 @dataclass
@@ -19,6 +20,12 @@ class Player:
 
     # Bereits abgeschlossene Zielkarten.
     completed_targets: list[Target] = field(default_factory=list)
+
+    # Charakter des Spielers
+    character: CharacterType | None = None
+
+    # Sonderfähigkeiten Zustand des Magiers
+    ability_used_for_current_target: bool = False
 
     def __post_init__(self) -> None:
         """
@@ -56,5 +63,8 @@ class Player:
         self.completed_targets.append(
             completed_target
         )
+
+        # Der Magier darf seine Fähigkeit einmal für jedes neu gesuchte Target verwenden.
+        self.ability_used_for_current_target = False
 
         return completed_target

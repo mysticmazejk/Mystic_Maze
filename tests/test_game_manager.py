@@ -1,7 +1,101 @@
 import pytest
 
+from app.game.enums import (
+    CharacterType,
+    Direction,
+)
 from app.game_manager import GameManager
-from app.game.enums import Direction
+
+
+def create_game_with_two_players(
+    manager: GameManager
+) -> str:
+    """
+    Erstellt über einen GameManager ein Spiel mit zwei Spielern.
+
+    Das Spiel wird dabei noch nicht gestartet und es werden
+    noch keine Charaktere vergeben.
+
+    :param manager: Zu verwendender GameManager.
+    :return: ID des erzeugten Spiels.
+    """
+    game_id = manager.create_game()
+
+    manager.add_player(
+        game_id,
+        "Spieler 1"
+    )
+
+    manager.add_player(
+        game_id,
+        "Spieler 2"
+    )
+
+    return game_id
+
+
+def select_standard_characters(
+    manager: GameManager,
+    game_id: str
+) -> None:
+    """
+    Vergibt die beiden aktuell verfügbaren Charaktere
+    an die beiden Spieler eines Testspiels.
+
+    Spieler 0 erhält den Magier.
+    Spieler 1 erhält den Wächter.
+
+    Die Charakterauswahl erfolgt momentan direkt am Game-Objekt,
+    da der GameManager hierfür noch keine eigene öffentliche
+    Methode bereitstellt.
+
+    :param manager: GameManager des Testspiels.
+    :param game_id: ID des Spiels.
+    """
+    game = manager.get_game(
+        game_id
+    )
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
+    )
+
+
+def create_started_game(
+    manager: GameManager,
+    targets_per_player: int = 1
+) -> str:
+    """
+    Erstellt und startet ein vollständiges Testspiel.
+
+    Vor dem Start werden die beiden verfügbaren Charaktere
+    eindeutig an die Spieler vergeben.
+
+    :param manager: Zu verwendender GameManager.
+    :param targets_per_player: Anzahl persönlicher Ziele pro Spieler.
+    :return: ID des gestarteten Spiels.
+    """
+    game_id = create_game_with_two_players(
+        manager
+    )
+
+    select_standard_characters(
+        manager,
+        game_id
+    )
+
+    manager.start_game(
+        game_id,
+        targets_per_player
+    )
+
+    return game_id
 
 
 def test_create_game():
@@ -24,7 +118,10 @@ def test_game_id_has_correct_length():
 
     game_id = manager.create_game()
 
-    assert len(game_id) == manager.GAME_ID_LENGTH
+    assert (
+        len(game_id)
+        == manager.GAME_ID_LENGTH
+    )
 
 
 def test_created_games_have_different_ids():
@@ -56,7 +153,7 @@ def test_get_unknown_game_fails():
 
 def test_remove_game():
     """
-    Prüft, ob ein Spiel entfernt werden kann.
+    Prüft, ob ein vorhandenes Spiel entfernt werden kann.
     """
     manager = GameManager()
 
@@ -72,7 +169,7 @@ def test_remove_game():
 def test_removed_game_cannot_be_accessed():
     """
     Prüft, ob ein entferntes Spiel anschließend nicht mehr
-    abgerufen werden kann.
+    über den GameManager abgerufen werden kann.
     """
     manager = GameManager()
 
@@ -93,7 +190,8 @@ def test_removed_game_cannot_be_accessed():
 
 def test_add_player_to_game():
     """
-    Prüft, ob ein Spieler einem Spiel hinzugefügt werden kann.
+    Prüft, ob ein Spieler einem Spiel hinzugefügt werden kann
+    und der korrekte Spielerindex zurückgegeben wird.
     """
     manager = GameManager()
 
@@ -142,7 +240,8 @@ def test_player_name_is_trimmed():
 
 def test_empty_player_name_is_rejected():
     """
-    Prüft, ob ein leerer Spielername abgelehnt wird.
+    Prüft, ob ein leerer oder nur aus Leerzeichen
+    bestehender Spielername abgelehnt wird.
     """
     manager = GameManager()
 
@@ -208,20 +307,21 @@ def test_duplicate_player_name_is_case_insensitive():
 
 def test_start_game():
     """
-    Prüft, ob ein Spiel über den GameManager gestartet werden kann.
+    Prüft, ob ein vollständig vorbereitetes Spiel
+    über den GameManager gestartet werden kann.
+
+    Vor dem Start müssen beide Spieler einen eindeutigen
+    Charakter gewählt haben.
     """
     manager = GameManager()
 
-    game_id = manager.create_game()
-
-    manager.add_player(
-        game_id,
-        "Spieler 1"
+    game_id = create_game_with_two_players(
+        manager
     )
 
-    manager.add_player(
-        game_id,
-        "Spieler 2"
+    select_standard_characters(
+        manager,
+        game_id
     )
 
     manager.start_game(
@@ -245,6 +345,27 @@ def test_start_game():
     ) == 3
 
 
+def test_game_manager_cannot_start_without_character_selection():
+    """
+    Prüft, ob die Charakterpflicht der Game-Klasse
+    auch bei einem Start über den GameManager greift.
+    """
+    manager = GameManager()
+
+    game_id = create_game_with_two_players(
+        manager
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Charakter wählen"
+    ):
+        manager.start_game(
+            game_id,
+            targets_per_player=1
+        )
+
+
 def test_cannot_add_player_after_game_start():
     """
     Prüft, ob die Game-Regel für den Beitritt nach Spielstart
@@ -252,21 +373,8 @@ def test_cannot_add_player_after_game_start():
     """
     manager = GameManager()
 
-    game_id = manager.create_game()
-
-    manager.add_player(
-        game_id,
-        "Spieler 1"
-    )
-
-    manager.add_player(
-        game_id,
-        "Spieler 2"
-    )
-
-    manager.start_game(
-        game_id,
-        targets_per_player=1
+    game_id = create_started_game(
+        manager
     )
 
     with pytest.raises(
@@ -277,6 +385,7 @@ def test_cannot_add_player_after_game_start():
             game_id,
             "Spieler 3"
         )
+
 
 def test_add_player_returns_player_index():
     """
@@ -307,16 +416,8 @@ def test_game_manager_get_player_by_index():
     """
     manager = GameManager()
 
-    game_id = manager.create_game()
-
-    manager.add_player(
-        game_id,
-        "Spieler 1"
-    )
-
-    manager.add_player(
-        game_id,
-        "Spieler 2"
+    game_id = create_game_with_two_players(
+        manager
     )
 
     player = manager.get_player(
@@ -334,21 +435,9 @@ def test_public_game_state_contains_complete_board():
     """
     manager = GameManager()
 
-    game_id = manager.create_game()
-
-    manager.add_player(
-        game_id,
-        "Spieler 1"
-    )
-
-    manager.add_player(
-        game_id,
-        "Spieler 2"
-    )
-
-    manager.start_game(
-        game_id,
-        3
+    game_id = create_started_game(
+        manager,
+        targets_per_player=3
     )
 
     state = manager.get_public_game_state(
@@ -359,6 +448,8 @@ def test_public_game_state_contains_complete_board():
         state.board.tiles
     ) == 7
 
+    # Jede der sieben Zeilen muss wiederum
+    # genau sieben Kacheln enthalten.
     for row in state.board.tiles:
         assert len(row) == 7
 
@@ -368,31 +459,21 @@ def test_public_game_state_contains_complete_board():
 def test_public_state_contains_reachable_positions():
     """
     Prüft, ob der öffentliche Spielzustand nach dem
-    Verschieben die erreichbaren Felder enthält.
+    Verschieben die erreichbaren Felder des aktiven
+    Spielers enthält.
     """
     manager = GameManager()
 
-    game_id = manager.create_game()
-
-    manager.add_player(
-        game_id,
-        "Spieler 1"
-    )
-
-    manager.add_player(
-        game_id,
-        "Spieler 2"
-    )
-
-    manager.start_game(
-        game_id,
-        1
+    game_id = create_started_game(
+        manager
     )
 
     game = manager.get_game(
         game_id
     )
 
+    # Erst nach dem verpflichtenden Verschieben
+    # werden Bewegungsziele angeboten.
     game.insert_spare_tile(
         1,
         Direction.EAST
@@ -402,6 +483,8 @@ def test_public_state_contains_reachable_positions():
         game_id
     )
 
+    # Mindestens die eigene Spielerposition
+    # muss erreichbar sein.
     assert len(
         state.reachable_positions
     ) > 0

@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from app.game.enums import CharacterType
 from app.main import app
 from app.state import (
     connection_manager,
@@ -17,8 +18,10 @@ def reset_application_state():
     """
     Setzt Spiele und WebSocket-Verbindungen
     vor und nach jedem Test zurück.
-    """
 
+    Dadurch kann kein Spielzustand oder eine alte Verbindung
+    einen nachfolgenden Test beeinflussen.
+    """
     game_manager.games.clear()
     connection_manager.connections.clear()
 
@@ -30,29 +33,54 @@ def reset_application_state():
 
 def create_started_game() -> str:
     """
-    Erstellt über die API ein gestartetes Spiel
+    Erstellt über die REST-API ein gestartetes Spiel
     mit zwei Spielern.
 
-    :return: ID des erzeugten Spiels.
-    """
+    Spieler 0 erhält den Magier und Spieler 1 den Wächter,
+    damit die verpflichtende Charakterauswahl vor dem
+    Spielstart erfüllt ist.
 
+    Die Charaktere werden momentan direkt über das Game-Objekt
+    vergeben, solange noch kein eigener REST-Endpunkt für die
+    Charakterauswahl existiert.
+
+    :return: ID des erzeugten und gestarteten Spiels.
+    """
     game_id = (
         client.post("/games")
         .json()["game_id"]
     )
 
-    client.post(
+    first_player_response = client.post(
         f"/games/{game_id}/players",
         json={
             "name": "Spieler 1"
         }
     )
 
-    client.post(
+    second_player_response = client.post(
         f"/games/{game_id}/players",
         json={
             "name": "Spieler 2"
         }
+    )
+
+    assert first_player_response.status_code == 200
+    assert second_player_response.status_code == 200
+
+    game = game_manager.get_game(
+        game_id
+    )
+
+    # Pflichtauswahl der beiden verfügbaren Charaktere.
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
     )
 
     response = client.post(
@@ -69,13 +97,16 @@ def create_started_game() -> str:
 
 def receive_initial_state(websocket):
     """
-    Liest die beiden Nachrichten, die beim Aufbau
-    einer WebSocket-Verbindung gesendet werden.
+    Liest die beiden Zustandsnachrichten, die nach dem Aufbau
+    einer WebSocket-Verbindung an einen Spieler gesendet werden.
+
+    Erwartet werden:
+    1. der öffentliche Spielzustand,
+    2. der private Zustand des verbundenen Spielers.
 
     :param websocket: Geöffnete Test-WebSocket-Verbindung.
-    :return: Tuple aus öffentlichem und privatem Zustand.
+    :return: Tuple aus öffentlichem Game-State und privatem Player-State.
     """
-
     game_state = websocket.receive_json()
     player_state = websocket.receive_json()
 
@@ -88,9 +119,8 @@ def receive_initial_state(websocket):
 def test_websocket_connects_to_game():
     """
     Prüft, ob sich ein vorhandener Spieler
-    per WebSocket verbinden kann.
+    per WebSocket mit seinem Spiel verbinden kann.
     """
-
     game_id = create_started_game()
 
     with client.websocket_connect(
@@ -116,10 +146,9 @@ def test_websocket_connects_to_game():
 
 def test_websocket_rejects_unknown_player():
     """
-    Prüft, ob eine Verbindung mit einem
+    Prüft, ob eine WebSocket-Verbindung mit einem
     unbekannten Spielerindex abgelehnt wird.
     """
-
     game_id = create_started_game()
 
     with pytest.raises(
@@ -133,10 +162,9 @@ def test_websocket_rejects_unknown_player():
 
 def test_websocket_ping():
     """
-    Prüft die grundlegende Kommunikation
-    über die WebSocket-Verbindung.
+    Prüft die grundlegende bidirektionale Kommunikation
+    über eine WebSocket-Verbindung.
     """
-
     game_id = create_started_game()
 
     with client.websocket_connect(
@@ -165,9 +193,11 @@ def test_websocket_ping():
 def test_private_target_is_not_in_public_state():
     """
     Prüft, ob das persönliche Target eines Spielers
-    nicht im öffentlichen Spielerzustand enthalten ist.
-    """
+    nicht im öffentlich sichtbaren Spielzustand enthalten ist.
 
+    Der jeweils eigene Player-State darf das persönliche
+    aktuelle Ziel dagegen enthalten.
+    """
     game_id = create_started_game()
 
     with client.websocket_connect(
@@ -201,9 +231,8 @@ def test_private_target_is_not_in_public_state():
 def test_current_player_can_rotate_spare_tile():
     """
     Prüft, ob der aktuell aktive Spieler das
-    freie Plättchen über WebSocket drehen kann.
+    freie Schiebeplättchen über WebSocket drehen kann.
     """
-
     game_id = create_started_game()
 
     game = game_manager.get_game(
@@ -228,6 +257,10 @@ def test_current_player_can_rotate_spare_tile():
             }
         )
 
+        # Nach einer erfolgreichen Aktion sendet der Server
+        # zunächst den aktualisierten öffentlichen Zustand,
+        # danach den privaten Player-State und abschließend
+        # die Erfolgsbestätigung.
         game_state = (
             websocket.receive_json()
         )
@@ -257,13 +290,12 @@ def test_current_player_can_rotate_spare_tile():
 def test_inactive_player_cannot_rotate_spare_tile():
     """
     Prüft, ob ein nicht aktiver Spieler keine
-    Spielaktion ausführen kann.
+    Spielaktion für den aktiven Zug ausführen kann.
     """
-
     game_id = create_started_game()
 
-    # Spieler 0 beginnt.
-    # Spieler 1 darf daher nicht drehen.
+    # Spieler 0 beginnt die Partie.
+    # Spieler 1 darf daher das Spare Tile nicht drehen.
     with client.websocket_connect(
         f"/ws/games/{game_id}/players/1"
     ) as websocket:
@@ -295,7 +327,6 @@ def test_current_player_can_shift_board():
     Prüft, ob der aktive Spieler das Labyrinth
     über WebSocket verschieben kann.
     """
-
     game_id = create_started_game()
 
     with client.websocket_connect(
@@ -334,6 +365,8 @@ def test_current_player_can_shift_board():
             is True
         )
 
+        # Nach dem verpflichtenden Einschieben darf im selben
+        # Zug kein zweites Mal geschoben werden.
         assert (
             game_state["data"]["board"]["allowed_shifts"]
             == []
@@ -350,7 +383,6 @@ def test_shift_makes_reachable_positions_available():
     Prüft, ob nach dem Verschieben erreichbare
     Felder an den Client übertragen werden.
     """
-
     game_id = create_started_game()
 
     with client.websocket_connect(
@@ -373,6 +405,9 @@ def test_shift_makes_reachable_positions_available():
             websocket.receive_json()
         )
 
+        # Privaten Zustand und Erfolgsbestätigung lesen,
+        # damit die WebSocket-Nachrichten vollständig
+        # verarbeitet sind.
         websocket.receive_json()
         websocket.receive_json()
 
@@ -382,8 +417,8 @@ def test_shift_makes_reachable_positions_available():
             ]
         )
 
-        # Mindestens die eigene Position ist
-        # immer erreichbar.
+        # Mindestens die aktuelle Position des Spielers
+        # gehört immer zur erreichbaren Menge.
         assert len(
             reachable_positions
         ) >= 1
@@ -394,7 +429,6 @@ def test_player_can_move_to_reachable_position():
     Prüft eine vollständige Schiebe- und
     Bewegungsaktion über WebSocket.
     """
-
     game_id = create_started_game()
 
     with client.websocket_connect(
@@ -405,7 +439,7 @@ def test_player_can_move_to_reachable_position():
             websocket
         )
 
-        # Zuerst schieben.
+        # Zuerst wird das Labyrinth verschoben.
         websocket.send_json(
             {
                 "type": "shift",
@@ -432,9 +466,10 @@ def test_player_can_move_to_reachable_position():
 
         assert reachable_positions
 
+        # Für den Test genügt eine beliebige vom Server
+        # als erreichbar gemeldete Position.
         target = reachable_positions[0]
 
-        # Danach bewegen.
         websocket.send_json(
             {
                 "type": "move",
@@ -461,6 +496,8 @@ def test_player_can_move_to_reachable_position():
             is True
         )
 
+        # Nach der Bewegung dürfen im selben Zug
+        # keine weiteren Bewegungsziele angeboten werden.
         assert (
             moved_state["data"][
                 "reachable_positions"
@@ -476,10 +513,9 @@ def test_player_can_move_to_reachable_position():
 
 def test_current_player_can_end_turn():
     """
-    Prüft, ob nach dem Verschieben der Zug
-    über WebSocket beendet werden kann.
+    Prüft, ob der aktuelle Spieler seinen Zug
+    nach dem verpflichtenden Einschieben beenden kann.
     """
-
     game_id = create_started_game()
 
     with client.websocket_connect(
@@ -490,7 +526,8 @@ def test_current_player_can_end_turn():
             websocket
         )
 
-        # Einschieben ist vor dem Zugende verpflichtend.
+        # Ein Zug darf erst nach dem Einschieben
+        # des freien Plättchens beendet werden.
         websocket.send_json(
             {
                 "type": "shift",
@@ -499,8 +536,13 @@ def test_current_player_can_end_turn():
             }
         )
 
+        # game_state
         websocket.receive_json()
+
+        # player_state
         websocket.receive_json()
+
+        # action_success
         websocket.receive_json()
 
         websocket.send_json(
@@ -513,12 +555,14 @@ def test_current_player_can_end_turn():
             websocket.receive_json()
         )
 
+        # player_state
         websocket.receive_json()
 
         success = (
             websocket.receive_json()
         )
 
+        # Spieler 1 ist nach dem Zugwechsel aktiv.
         assert (
             game_state["data"][
                 "current_player_index"
@@ -526,6 +570,8 @@ def test_current_player_can_end_turn():
             == 1
         )
 
+        # Die Zugzustände werden für den neuen
+        # Spieler vollständig zurückgesetzt.
         assert (
             game_state["data"]["has_shifted"]
             is False
@@ -544,10 +590,9 @@ def test_current_player_can_end_turn():
 
 def test_unknown_websocket_action_returns_error():
     """
-    Prüft, ob unbekannte Nachrichtentypen
-    abgelehnt werden.
+    Prüft, ob unbekannte WebSocket-Nachrichtentypen
+    mit einer Fehlermeldung abgelehnt werden.
     """
-
     game_id = create_started_game()
 
     with client.websocket_connect(

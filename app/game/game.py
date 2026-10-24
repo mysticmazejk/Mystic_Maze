@@ -1,7 +1,7 @@
 import random
 
 from app.game.board import Board
-from app.game.enums import Direction, GateType
+from app.game.enums import Direction, GateType, CharacterType
 from app.game.player import Player
 from app.game.target import Target
 
@@ -116,6 +116,45 @@ class Game:
         self.players.append(player)
 
         return player
+
+    def select_character(
+            self,
+            player_index: int,
+            character: CharacterType
+    ) -> None:
+        """
+        Weist einem Spieler vor Spielbeginn einen Charakter zu.
+
+        Jeder Charakter darf innerhalb einer Partie nur einmal
+        vergeben werden.
+
+        :param player_index: Index des Spielers.
+        :param character: Gewählter Charakter.
+        :raises ValueError: Wenn das Spiel bereits gestartet wurde.
+        :raises ValueError: Wenn der Charakter bereits vergeben ist.
+        """
+
+        if self.started:
+            raise ValueError(
+                "Nach Spielstart kann der Charakter nicht mehr geändert werden."
+            )
+
+        player = self.get_player(
+            player_index
+        )
+
+        for other_player in self.players:
+
+            if (
+                    other_player is not player
+                    and other_player.character == character
+            ):
+                raise ValueError(
+                    f"Der Charakter '{character.value}' "
+                    "ist bereits vergeben."
+                )
+
+        player.character = character
 
     def insert_spare_tile(self, index: int, direction: Direction) -> None:
         """
@@ -272,6 +311,26 @@ class Game:
                 # kann auch das Verschieben das Spiel beenden.
                 self._check_winner(player)
 
+    def _get_blocked_positions_for_player(
+            self,
+            player: Player
+    ) -> set[tuple[int, int]]:
+        """
+        Ermittelt die für einen Spieler gesperrten Felder.
+
+        Der Wächter darf geschlossene Tore unabhängig vom
+        Schlüsselstatus passieren. Für andere Charaktere
+        bleiben geschlossene Tore blockiert.
+
+        :param player: Spieler, dessen Bewegungsmöglichkeiten
+                       berechnet werden.
+        :return: Menge gesperrter Positionen.
+        """
+
+        if player.character == CharacterType.GUARDIAN:
+            return set()
+
+        return self._get_locked_gate_positions()
 
     def move_player(self, player: Player, target_row: int, target_column: int) -> None:
         """
@@ -327,7 +386,9 @@ class Game:
         # Alle Tore, deren jeweiliger Schlüssel noch nicht
         # aktiviert wurde, werden bei der Wegfindung gesperrt.
         blocked_positions = (
-            self._get_locked_gate_positions()
+            self._get_blocked_positions_for_player(
+                player
+            )
         )
 
         # Alle aktuell tatsächlich erreichbaren Felder berechnen.
@@ -659,17 +720,21 @@ class Game:
         if tile.portal:
             self._use_portal(player)
 
-
-    def start_game(self, targets_per_player: int) -> None:
+    def start_game(
+            self,
+            targets_per_player: int
+    ) -> None:
         """
         Startet das Spiel und verteilt die Zielkarten.
 
         Das Spiel kann nur einmal gestartet werden und benötigt
-        mindestens zwei Spieler.
+        mindestens zwei Spieler. Zusätzlich muss jeder Spieler
+        vor Spielstart einen Charakter gewählt haben.
 
         :param targets_per_player: Anzahl persönlicher Targets pro Spieler.
         :raises ValueError: Wenn das Spiel bereits gestartet wurde.
         :raises ValueError: Wenn weniger als zwei Spieler vorhanden sind.
+        :raises ValueError: Wenn nicht alle Spieler einen Charakter gewählt haben.
         :raises ValueError: Wenn die gewünschte Target-Anzahl ungültig ist.
         """
 
@@ -683,13 +748,23 @@ class Game:
                 "Zum Starten werden mindestens zwei Spieler benötigt."
             )
 
+        # Vor Spielstart muss jeder Spieler einen Charakter
+        # ausgewählt haben.
+        if any(
+                player.character is None
+                for player in self.players
+        ):
+            raise ValueError(
+                "Alle Spieler müssen vor Spielstart einen Charakter wählen."
+            )
+
         # Zielkarten entsprechend der gewählten Anzahl verteilen.
         self.distribute_targets(
             targets_per_player
         )
 
         # Der zuerst hinzugefügte Spieler beginnt.
-        self.current_player_id = 0
+        self.current_player_index = 0
 
         # Zugstatus zurücksetzen.
         self.has_shifted = False
@@ -911,7 +986,9 @@ class Game:
         player = self.get_current_player()
 
         blocked_positions = (
-            self._get_locked_gate_positions()
+            self._get_blocked_positions_for_player(
+                player
+            )
         )
 
         return self.board.get_reachable_positions(
@@ -919,3 +996,154 @@ class Game:
             player.column,
             blocked_positions=blocked_positions
         )
+
+    def use_magician_ability(
+            self,
+            player: Player,
+            row: int,
+            column: int
+    ) -> None:
+        """
+        Verwendet die Sonderfähigkeit des Magiers.
+
+        Der Magier darf einmal pro aktuell gesuchtem persönlichen
+        Target eine Kachel auf dem Spielbrett um 90 Grad drehen.
+
+        Die Fähigkeit kann im eigenen Zug nach dem Einschieben
+        und vor der Spielerbewegung verwendet werden.
+
+        :param player: Spieler, der die Fähigkeit verwendet.
+        :param row: Zeile der zu drehenden Kachel.
+        :param column: Spalte der zu drehenden Kachel.
+        :raises ValueError: Wenn die Fähigkeit aktuell nicht
+                            verwendet werden darf.
+        """
+
+        self._ensure_game_active()
+
+        if player != self.get_current_player():
+            raise ValueError(
+                "Dieser Spieler ist aktuell nicht am Zug."
+            )
+
+        if player.character != CharacterType.MAGICIAN:
+            raise ValueError(
+                "Nur der Magier kann diese Fähigkeit verwenden."
+            )
+
+        if not self.has_shifted:
+            raise ValueError(
+                "Die Magier-Fähigkeit kann erst nach dem "
+                "Verschieben des Labyrinths verwendet werden."
+            )
+
+        if self.has_moved:
+            raise ValueError(
+                "Die Magier-Fähigkeit kann nach der Bewegung "
+                "nicht mehr verwendet werden."
+            )
+
+        if player.get_current_target() is None:
+            raise ValueError(
+                "Ohne offenes persönliches Ziel kann die "
+                "Magier-Fähigkeit nicht verwendet werden."
+            )
+
+        if player.ability_used_for_current_target:
+            raise ValueError(
+                "Die Magier-Fähigkeit wurde für dieses Ziel "
+                "bereits verwendet."
+            )
+
+        if not self.board.is_valid_position(
+                row,
+                column
+        ):
+            raise ValueError(
+                "Die gewählte Kachel liegt außerhalb des Spielbretts."
+            )
+
+        tile = self.board.get_tile(
+            row,
+            column
+        )
+
+        # Die Charakterfähigkeit darf ausdrücklich eine Kachel
+        # auf dem Spielbrett drehen. Deshalb wird hier bewusst
+        # nicht Tile.rotate_clockwise() verwendet, da diese Methode
+        # feste Kacheln normalerweise vor Rotation schützt.
+        tile.rotation = (
+                                tile.rotation + 1
+                        ) % 4
+
+        player.ability_used_for_current_target = True
+
+    def can_use_magician_ability(
+            self,
+            player: Player
+    ) -> bool:
+        """
+        Prüft, ob ein Spieler die Sonderfähigkeit des Magiers
+        im aktuellen Spielzustand verwenden darf.
+
+        Die Fähigkeit kann nur verwendet werden, wenn:
+        - das Spiel gestartet und noch nicht beendet ist,
+        - der Spieler zum aktuellen Spiel gehört,
+        - der Spieler den Charakter Magier besitzt,
+        - der Spieler aktuell am Zug ist,
+        - das Labyrinth bereits verschoben wurde,
+        - der Spieler sich noch nicht bewegt hat,
+        - noch ein persönliches Ziel vorhanden ist,
+        - die Fähigkeit für das aktuelle Ziel noch nicht verwendet wurde.
+
+        :param player: Spieler, dessen Fähigkeit geprüft werden soll.
+        :return: True, wenn die Magier-Fähigkeit aktuell verfügbar ist.
+        """
+
+        # Die Fähigkeit kann nur während einer laufenden Partie
+        # verwendet werden.
+        if (
+                not self.started
+                or self.finished
+        ):
+            return False
+
+        # Der übergebene Spieler muss tatsächlich
+        # zu dieser Partie gehören.
+        if player not in self.players:
+            return False
+
+        # Die Fähigkeit steht ausschließlich
+        # dem Charakter Magier zur Verfügung.
+        if (
+                player.character
+                != CharacterType.MAGICIAN
+        ):
+            return False
+
+        # Charakterfähigkeiten dürfen nur während
+        # des eigenen Zuges eingesetzt werden.
+        if player != self.get_current_player():
+            return False
+
+        # Die Magier-Fähigkeit wird erst nach dem
+        # verpflichtenden Verschieben des Labyrinths verfügbar.
+        if not self.has_shifted:
+            return False
+
+        # Nach der Spielerbewegung darf die Fähigkeit
+        # in diesem Zug nicht mehr eingesetzt werden.
+        if self.has_moved:
+            return False
+
+        # Ohne ein aktuell gesuchtes persönliches Ziel
+        # besteht keine weitere Nutzungsmöglichkeit.
+        if player.get_current_target() is None:
+            return False
+
+        # Pro gesuchtem Ziel darf die Fähigkeit
+        # höchstens einmal verwendet werden.
+        if player.ability_used_for_current_target:
+            return False
+
+        return True
