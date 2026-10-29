@@ -1,28 +1,36 @@
+@startuml MysticMaze
 top to bottom direction
 
 skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam defaultTextAlignment left
+skinparam packageStyle rectangle
 
-package "Anwendungslogik" {
+package "Kommunikationsschicht" as Kommunikation {
+    class ConnectionManager {
+        - connections
+    }
+}
+
+package "Anwendungslogik" as Anwendung {
 
     class GameManager {
+        {static} GAME_ID_LENGTH: int
         - games: dict[str, Game]
+
         + create_game(): str
         + get_game(game_id: str): Game
         + remove_game(game_id: str): void
         + add_player(game_id: str, name: str): int
         + get_player(game_id: str, player_index: int): Player
         + start_game(game_id: str, targets_per_player: int): void
-        + get_max_targets_per_player(game_id: str): int
+        + rotate_spare_tile(game_id: str, player_index: int): void
+        + shift_board(game_id: str, player_index: int, index: int, direction: Direction): void
+        + move_player(game_id: str, player_index: int, row: int, column: int): void
+        + use_magician_ability(game_id: str, player_index: int, row: int, column: int, direction: RotationDirection): void
+        + end_turn(game_id: str, player_index: int): void
     }
 
-    class ConnectionManager {
-        - connections
-        + connect(game_id: str, player_index: int, websocket): void
-        + disconnect(game_id: str, player_index: int): void
-        + publish_game_state(game_id: str): void
-    }
 }
 
 package "Spiellogik" {
@@ -33,73 +41,105 @@ package "Spiellogik" {
         - current_player_index: int
         - has_shifted: bool
         - has_moved: bool
-        - last_shift
+        - last_shift: tuple[int, Direction]
         - activated_keys: set[Target]
         - started: bool
         - finished: bool
         - winner: Player
-        + add_player(name: str): int
+
+        + add_player(name: str): void
         + get_player(player_index: int): Player
         + get_current_player(): Player
+        + select_character(player_index: int,
+          character: CharacterType): void
         + start_game(targets_per_player: int): void
         + distribute_targets(targets_per_player: int): void
+        + rotate_spare_tile(): void
+        + get_allowed_shifts(): list
         + insert_spare_tile(index: int, direction: Direction): void
-        + move_player(player: Player, row: int, column: int): void
-        + end_turn(): void
+        + get_reachable_positions_for_current_player(): set
+        + move_player(player: Player,  row: int, column: int): void
+        + use_magician_ability(player: Player, row: int, column: int, direction: RotationDirection): void
         + activate_key(target: Target): void
         + is_gate_open(gate_type: GateType): bool
+        + end_turn(): void
     }
 
     class Board {
         {static} SIZE: int = 7
         - tiles: list[list[Tile]]
         - spare_tile: Tile
+
         + get_tile(row: int, column: int): Tile
         + insert_spare_tile(index: int, direction: Direction): void
-        + get_reachable_positions(row: int, column: int): set
+        + get_reachable_positions(row: int, column: int, blocked_positions: set): set
         + is_valid_position(row: int, column: int): bool
     }
 
     class Tile {
         - tile_type: TileType
         - rotation: int
+        - fixed: bool
         - target: Target
         - gate: GateType
         - portal: bool
+
         + rotate(): void
     }
 
     class Player {
-        - player_index: int
         - name: str
         - row: int
         - column: int
+        - start_row: int
+        - start_column: int
+        - character: CharacterType
         - targets: list[Target]
         - completed_targets: list[Target]
+        - ability_used_for_current_target: bool
+
         + get_current_target(): Target
         + complete_current_target(): void
     }
-    enum Target
-    enum TileType
+
+    enum CharacterType
+
     enum Direction
+
+    enum RotationDirection
+
+    enum TileType
+
     enum GateType
+
+    enum Target
 }
 
 
+' ---------------------------------------------------------
+' Beziehungen
+' ---------------------------------------------------------
+Kommunikation ..> Anwendung : übergibt Spielaktionen
 
 GameManager "1" o-- "0..*" Game : verwaltet
-ConnectionManager ..> GameManager : nutzt
 
 Game "1" *-- "1" Board
 Game "1" *-- "2..4" Player
+
 Board "1" *-- "49" Tile : Spielfeld
 Board "1" *-- "1" Tile : freie Kachel
 
-Player --> Target : Ziele
+Player --> CharacterType : Charakter
+Player --> Target : persönliche Ziele
+
+Tile --> TileType : Typ
 Tile --> Target : Ziel
-Tile --> TileType
-Tile --> GateType
-Game --> Direction
-Game --> Target : Schlüssel
+Tile --> GateType : Tor
+
+Game ..> Direction
+Game ..> RotationDirection
+Game ..> CharacterType
+Game ..> Target
+
 
 @enduml

@@ -1,0 +1,50 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 100 100"
+>
+    <defs>
+        <filter
+            id="shadow"
+            x="-30%"
+            y="-20%"
+            width="160%"
+            height="140%"
+        >
+            <feDropShadow
+                dx="0"
+                dy="2"
+                stdDeviation="2"
+                flood-color="#000000"
+                flood-opacity="0.28"
+            />
+        </filter>
+    </defs>
+
+    <!--
+        Der Weg besteht bewusst aus gefüllten Flächen statt aus
+        einer SVG-Linie. Dadurch wirkt die gerade Kachel genauso
+        breit und massiv wie die übrigen Wegformen.
+    -->
+    <g filter="url(#shadow)">
+
+        <!-- Äußerer sandfarbener Wegbereich -->
+        <rect
+            x="25"
+            y="0"
+            width="50"
+            height="100"
+            fill="#d8c39a"
+        />
+
+        <!-- Heller innerer Wegbereich -->
+        <rect
+            x="35"
+            y="0"
+            width="30"
+            height="100"
+            fill="#f3e6c5"
+            opacity="0.95"
+        />
+
+    </g>
+</svg>

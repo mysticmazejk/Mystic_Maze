@@ -25,6 +25,16 @@ const gameIdElement = document.getElementById(
     "game-id"
 );
 
+const copyGameIdButton =
+    document.getElementById(
+        "copy-game-id-button"
+    );
+
+const copyGameIdStatus =
+    document.getElementById(
+        "copy-game-id-status"
+    );
+
 const playerIndexElement = document.getElementById(
     "player-index"
 );
@@ -46,11 +56,6 @@ const playerList = document.getElementById(
 const gameStatus = document.getElementById(
     "game-status"
 );
-
-const currentTarget = document.getElementById(
-    "current-target"
-);
-
 
 // Charakterauswahl.
 const characterSelect = document.getElementById(
@@ -404,29 +409,6 @@ function renderGameState(state) {
         playerIndex !== 0;
 }
 
-
-/**
- * Rendert den privaten Zustand des aktuellen Spielers.
- *
- * Vor dem Spielstart ist normalerweise noch kein persönliches
- * Ziel vorhanden. Nach dem Start erfolgt ohnehin direkt die
- * Weiterleitung zur Spielansicht.
- *
- * @param {Object} state - Privater Spielerzustand.
- */
-function renderPlayerState(state) {
-    if (state.current_target === null) {
-        currentTarget.textContent =
-            "Noch nicht vergeben.";
-
-        return;
-    }
-
-    currentTarget.textContent =
-        state.current_target;
-}
-
-
 // =============================================================================
 // 4. REST- und WebSocket-Kommunikation
 // =============================================================================
@@ -469,13 +451,6 @@ async function loadInitialGameState() {
 function handleWebSocketMessage(message) {
     if (message.type === "game_state") {
         renderGameState(
-            message.data
-        );
-
-    } else if (
-        message.type === "player_state"
-    ) {
-        renderPlayerState(
             message.data
         );
 
@@ -660,57 +635,34 @@ async function handleSelectCharacter() {
     }
 }
 
-/**
- * Speichert den vom Spieler gewählten Charakter
- * über die REST-API im serverseitigen Spielzustand.
- *
- * Der Server prüft dabei insbesondere, ob:
- * - das Spiel noch nicht gestartet wurde,
- * - der Spieler existiert,
- * - der Charakter noch verfügbar ist.
- */
-async function handleSelectCharacter() {
-    clearError();
-
-    const character =
-        characterSelect.value;
-
-    if (!character) {
-        showError(
-            "Bitte wähle einen Charakter."
-        );
-
-        return;
-    }
-
+async function copyGameId() {
     try {
-        await requestJson(
-            `/games/${gameId}`
-            + `/players/${playerIndex}`
-            + `/character`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-                body: JSON.stringify({
-                    character: character
-                })
-            }
+        await navigator.clipboard.writeText(
+            gameId
         );
 
-        /*
-         * Nach erfolgreicher Auswahl veröffentlicht
-         * der Server den aktualisierten Game-State
-         * über WebSocket an alle Lobby-Teilnehmer.
-         */
+        copyGameIdStatus.textContent =
+            "Spiel-ID kopiert.";
 
     } catch (error) {
-        showError(
-            error.message
+        gameIdElement.select();
+
+        document.execCommand(
+            "copy"
         );
+
+        copyGameIdStatus.textContent =
+            "Spiel-ID kopiert.";
     }
+
+
+    setTimeout(
+        () => {
+            copyGameIdStatus.textContent =
+                "";
+        },
+        1800
+    );
 }
 
 /**
@@ -810,6 +762,11 @@ function registerEventListeners() {
         "submit",
         handleStartGame
     );
+
+    copyGameIdButton.addEventListener(
+    "click",
+    copyGameId
+);
 }
 
 
@@ -828,7 +785,7 @@ function registerEventListeners() {
  * - der aktuelle Lobbyzustand einmalig per REST geladen.
  */
 function initializeLobbyPage() {
-    gameIdElement.textContent =
+    gameIdElement.value =
         gameId;
 
     playerIndexElement.textContent =

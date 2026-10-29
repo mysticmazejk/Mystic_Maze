@@ -44,31 +44,12 @@
         </div>
     </header>
 
-
     <section class="game-layout">
 
-        <div class="board-area">
+        <!-- Linke Informationsspalte -->
+        <aside class="game-left-panel">
 
-            <div class="board-shell">
-
-                <div
-                    id="shift-controls"
-                    class="shift-controls"
-                ></div>
-
-                <div
-                    id="board"
-                    class="board"
-                ></div>
-
-            </div>
-
-        </div>
-
-
-        <aside class="game-sidebar">
-
-            <section>
+            <section class="sidebar-card target-card">
                 <h2>Dein Ziel</h2>
 
                 <p id="current-target">
@@ -76,8 +57,111 @@
                 </p>
             </section>
 
+            <section class="sidebar-card players-card">
+                <h2>Spieler</h2>
 
-            <section>
+                <ul id="player-list"></ul>
+            </section>
+
+        </aside>
+
+
+        <!-- Zentraler Spielbereich -->
+        <section class="game-center">
+
+            <section class="turn-panel">
+                <h2>Zugstatus</h2>
+
+                <div class="turn-steps">
+
+                    <div
+                        id="turn-step-shift"
+                        class="turn-step"
+                    >
+                        <div class="turn-step-marker">
+                            <span class="turn-step-number">1</span>
+                            <span class="turn-step-check">✓</span>
+                        </div>
+
+                        <div class="turn-step-content">
+                            <strong>Labyrinth verschieben</strong>
+                            <span id="turn-step-shift-text">
+                                Noch ausstehend
+                            </span>
+                        </div>
+                    </div>
+
+
+                    <div
+                        id="turn-step-move"
+                        class="turn-step"
+                    >
+                        <div class="turn-step-marker">
+                            <span class="turn-step-number">2</span>
+                            <span class="turn-step-check">✓</span>
+                        </div>
+
+                        <div class="turn-step-content">
+                            <strong>Spielfigur bewegen</strong>
+                            <span id="turn-step-move-text">
+                                Optional
+                            </span>
+                        </div>
+                    </div>
+
+
+                    <div
+                        id="turn-step-end"
+                        class="turn-step"
+                    >
+                        <div class="turn-step-marker">
+                            <span class="turn-step-number">3</span>
+                            <span class="turn-step-check">✓</span>
+                        </div>
+
+                        <div class="turn-step-content">
+                            <strong>Zug beenden</strong>
+                            <span id="turn-step-end-text">
+                                Noch nicht verfügbar
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+
+            <div class="board-area">
+
+                <div class="board-shell">
+
+                    <div
+                        id="shift-controls"
+                        class="shift-controls"
+                    ></div>
+
+                    <div
+                        id="board"
+                        class="board"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <p
+                id="error-message"
+                class="error"
+            ></p>
+
+        </section>
+
+
+        <!-- Rechte Werkzeugspalte -->
+        <aside class="game-right-panel">
+
+            <section class="sidebar-card spare-card">
                 <h2>Freies Plättchen</h2>
 
                 <div
@@ -94,13 +178,7 @@
             </section>
 
 
-            <section>
-                <h2>Spieler</h2>
-
-                <ul id="player-list"></ul>
-            </section>
-
-            <section>
+            <section class="sidebar-card character-card">
                 <h2>Charakter</h2>
 
                 <p>
@@ -111,42 +189,72 @@
 
                 <p id="ability-status"></p>
 
-                <button
-                    id="magician-ability-button"
-                    type="button"
+                <div
+                    id="magician-ability-controls"
+                    class="magician-ability-controls"
                     hidden
                 >
-                    Kachel drehen
-                </button>
+                    <button
+                        id="magician-rotate-left-button"
+                        type="button"
+                    >
+                        ↺ Links
+                    </button>
+
+                    <button
+                        id="magician-rotate-right-button"
+                        type="button"
+                    >
+                        Rechts ↻
+                    </button>
+                </div>
             </section>
 
-
-            <section>
-                <h2>Zugstatus</h2>
-
-                <p id="shift-status"></p>
-                <p id="move-status"></p>
-
-                <button
-                    id="end-turn-button"
-                    type="button"
-                >
-                    Zug beenden
-                </button>
-            </section>
-
-
-            <p
-                id="error-message"
-                class="error"
-            ></p>
+            <button
+                id="end-turn-button"
+                class="end-turn-main-button"
+                type="button"
+            >
+                Zug beenden
+            </button>
 
         </aside>
 
     </section>
 
 </main>
+<div
+    id="game-notification"
+    class="game-notification"
+    hidden
+></div>
 
+<div
+    id="game-over-overlay"
+    class="game-over-overlay"
+    hidden
+>
+    <div class="game-over-card">
+        <span class="game-over-eyebrow">
+            SPIEL BEENDET
+        </span>
+
+        <h2 id="game-over-title">
+            Gewinner
+        </h2>
+
+        <p id="game-over-text">
+            Alle Ziele wurden gefunden und das Startfeld erreicht.
+        </p>
+
+        <a
+            href="/"
+            class="game-over-button"
+        >
+            Zur Startseite
+        </a>
+    </div>
+</div>
 <script src="/static/js/game.js"></script>
 
 </body>

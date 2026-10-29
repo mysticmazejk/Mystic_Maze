@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="portalGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#d7c7ff" stop-opacity="1"/>
+      <stop offset="45%" stop-color="#8f6bff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#4f2da8" stop-opacity="0.9"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="50" cy="50" r="34" fill="url(#portalGlow)" opacity="0.22"/>
+  <circle cx="50" cy="50" r="24" fill="none" stroke="#c3a9ff" stroke-width="5"/>
+  <circle cx="50" cy="50" r="16" fill="none" stroke="#efe8ff" stroke-width="3"/>
+
+  <path d="M50 26 C60 32 64 40 60 48 C56 56 46 59 42 67"
+        fill="none" stroke="#f7f3ff" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M36 37 C46 42 49 49 45 56"
+        fill="none" stroke="#e9ddff" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M60 44 C67 49 67 57 61 63"
+        fill="none" stroke="#e9ddff" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

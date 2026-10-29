@@ -4,6 +4,7 @@ from app.game.enums import (
     CharacterType,
     Direction,
     GateType,
+    RotationDirection,
     TileType,
 )
 from app.game.game import Game
@@ -1205,13 +1206,10 @@ def test_guardian_can_pass_closed_gate():
     assert blocked_positions == set()
 
 
-def test_magician_ability_can_only_be_used_once_per_target():
+def test_magician_ability_rotates_tile_right():
     """
-    Prüft die aktive Fähigkeit des Magiers.
-
-    Der Magier darf nach dem Einschieben genau einmal für das
-    aktuell gesuchte persönliche Ziel eine Kachel auf dem
-    Spielbrett um 90 Grad drehen.
+    Prüft, ob der Magier eine bewegliche Kachel
+    um 90 Grad nach rechts drehen kann.
     """
     game = Game()
 
@@ -1234,8 +1232,6 @@ def test_magician_ability_can_only_be_used_once_per_target():
 
     player = game.players[0]
 
-    # Die Fähigkeit ist erst nach dem regulären
-    # Einschieben des freien Plättchens verfügbar.
     game.insert_spare_tile(
         1,
         Direction.EAST
@@ -1248,24 +1244,210 @@ def test_magician_ability_can_only_be_used_once_per_target():
     game.use_magician_ability(
         player,
         1,
-        1
+        1,
+        RotationDirection.RIGHT
     )
 
-    # Die gewählte Board-Kachel wurde genau
-    # um einen Rotationsschritt gedreht.
     assert (
         game.board.tiles[1][1].rotation
         == (old_rotation + 1) % 4
     )
 
-    # Die Fähigkeit ist für das aktuelle Ziel verbraucht.
     assert (
         player.ability_used_for_current_target
         is True
     )
 
-    # Eine zweite Verwendung für dasselbe aktuelle Ziel
-    # muss vom Spiel abgelehnt werden.
+
+def test_magician_ability_rotates_tile_left():
+    """
+    Prüft, ob der Magier eine bewegliche Kachel
+    um 90 Grad nach links drehen kann.
+    """
+    game = Game()
+
+    game.add_player("Magier")
+    game.add_player("Wächter")
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
+    )
+
+    game.start_game(
+        1
+    )
+
+    player = game.players[0]
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    old_rotation = (
+        game.board.tiles[1][1].rotation
+    )
+
+    game.use_magician_ability(
+        player,
+        1,
+        1,
+        RotationDirection.LEFT
+    )
+
+    assert (
+        game.board.tiles[1][1].rotation
+        == (old_rotation - 1) % 4
+    )
+
+    assert (
+        player.ability_used_for_current_target
+        is True
+    )
+
+
+def test_magician_left_rotation_wraps_from_zero_to_three():
+    """
+    Prüft den Wraparound bei einer Linksdrehung
+    von Rotation 0 auf Rotation 3.
+    """
+    game = Game()
+
+    game.add_player("Magier")
+    game.add_player("Wächter")
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
+    )
+
+    game.start_game(
+        1
+    )
+
+    player = game.players[0]
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    game.board.tiles[1][1].rotation = 0
+
+    game.use_magician_ability(
+        player,
+        1,
+        1,
+        RotationDirection.LEFT
+    )
+
+    assert (
+        game.board.tiles[1][1].rotation
+        == 3
+    )
+
+
+def test_magician_right_rotation_wraps_from_three_to_zero():
+    """
+    Prüft den Wraparound bei einer Rechtsdrehung
+    von Rotation 3 auf Rotation 0.
+    """
+    game = Game()
+
+    game.add_player("Magier")
+    game.add_player("Wächter")
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
+    )
+
+    game.start_game(
+        1
+    )
+
+    player = game.players[0]
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    game.board.tiles[1][1].rotation = 3
+
+    game.use_magician_ability(
+        player,
+        1,
+        1,
+        RotationDirection.RIGHT
+    )
+
+    assert (
+        game.board.tiles[1][1].rotation
+        == 0
+    )
+
+
+def test_magician_ability_can_only_be_used_once_per_target():
+    """
+    Prüft, ob die Magier-Fähigkeit unabhängig von der
+    gewählten Drehrichtung nur einmal pro aktuellem Ziel
+    verwendet werden kann.
+    """
+    game = Game()
+
+    game.add_player("Magier")
+    game.add_player("Wächter")
+
+    game.select_character(
+        0,
+        CharacterType.MAGICIAN
+    )
+
+    game.select_character(
+        1,
+        CharacterType.GUARDIAN
+    )
+
+    game.start_game(
+        1
+    )
+
+    player = game.players[0]
+
+    game.insert_spare_tile(
+        1,
+        Direction.EAST
+    )
+
+    game.use_magician_ability(
+        player,
+        1,
+        1,
+        RotationDirection.RIGHT
+    )
+
+    assert (
+        player.ability_used_for_current_target
+        is True
+    )
+
     with pytest.raises(
         ValueError,
         match="bereits verwendet"
@@ -1273,7 +1455,8 @@ def test_magician_ability_can_only_be_used_once_per_target():
         game.use_magician_ability(
             player,
             1,
-            2
+            2,
+            RotationDirection.LEFT
         )
 
 
@@ -1363,7 +1546,8 @@ def test_magician_cannot_rotate_fixed_tile():
         game.use_magician_ability(
             player,
             2,
-            2
+            2,
+            RotationDirection.RIGHT
         )
 
     # Die feste Kachel bleibt unverändert.

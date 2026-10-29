@@ -1,4 +1,4 @@
-from app.game.enums import Direction
+from app.game.enums import Direction, RotationDirection
 from app.realtime import publish_game_state
 from app.state import game_manager
 
@@ -25,6 +25,7 @@ async def handle_game_action(
     )
 
     try:
+        events = []
 
         if action_type == "ping":
             return {
@@ -45,17 +46,110 @@ async def handle_game_action(
             )
 
         elif action_type == "move":
+            game = game_manager.get_game(
+                game_id
+            )
+
+            player = game.players[
+                player_index
+            ]
+
+
+            # Zustand vor der Bewegung merken.
+            previous_target = (
+                player.get_current_target()
+            )
+
+            previous_keys = set(
+                game.activated_keys
+            )
+
+            requested_position = (
+                message.get("row"),
+                message.get("column")
+            )
+
+
+            # Bewegung einschließlich Target-, Schlüssel-
+            # und Portalverarbeitung durchführen.
             _handle_move(
                 game_id,
                 player_index,
                 message
             )
+
+
+            # -------------------------------------------------
+            # Persönliches Ziel gefunden
+            # -------------------------------------------------
+
+            current_target = (
+                player.get_current_target()
+            )
+
+            if (
+                previous_target is not None
+                and current_target
+                != previous_target
+            ):
+                events.append(
+                    {
+                        "event":
+                            "target_completed",
+                        "target":
+                            previous_target.value
+                    }
+                )
+
+
+            # -------------------------------------------------
+            # Schlüssel aktiviert
+            # -------------------------------------------------
+
+            activated_keys = (
+                game.activated_keys
+                - previous_keys
+            )
+
+            for key in activated_keys:
+                events.append(
+                    {
+                        "event":
+                            "key_activated",
+                        "key":
+                            key.value
+                    }
+                )
+
+
+            # -------------------------------------------------
+            # Portal benutzt
+            # -------------------------------------------------
+
+            actual_position = (
+                player.row,
+                player.column
+            )
+
+            if (
+                actual_position
+                != requested_position
+            ):
+                events.append(
+                    {
+                        "event":
+                            "portal_used"
+                    }
+                )
+
+
         elif action_type == "use_magician_ability":
             _handle_magician_ability(
                 game_id,
                 player_index,
                 message
             )
+
         elif action_type == "end_turn":
             game_manager.end_turn(
                 game_id,
@@ -65,8 +159,10 @@ async def handle_game_action(
         else:
             return {
                 "type": "error",
-                "message": "Unbekannter Nachrichtentyp."
+                "message":
+                    "Unbekannter Nachrichtentyp."
             }
+
 
         # Nach jeder erfolgreichen Spielaktion
         # den neuen Zustand verteilen.
@@ -74,10 +170,20 @@ async def handle_game_action(
             game_id
         )
 
-        return {
+
+        response = {
             "type": "action_success",
             "action": action_type
         }
+
+
+        # Nur hinzufügen, wenn tatsächlich
+        # ein besonderes Spielereignis auftrat.
+        if events:
+            response["events"] = events
+
+
+        return response
 
     except (
         ValueError,
@@ -205,8 +311,21 @@ def _handle_magician_ability(
             "Für die Magier-Fähigkeit fehlt die Spalte."
         )
 
+    if "direction" not in message:
+        raise ValueError(
+            "Für die Magier-Fähigkeit fehlt die Drehrichtung."
+        )
+
     row = message["row"]
     column = message["column"]
+    try:
+        direction = RotationDirection(
+            message["direction"]
+        )
+    except ValueError:
+        raise ValueError(
+            "Ungültige Drehrichtung."
+        )
 
     if (
         not isinstance(row, int)
@@ -220,5 +339,6 @@ def _handle_magician_ability(
         game_id,
         player_index,
         row,
-        column
+        column,
+        direction
     )

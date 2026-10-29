@@ -19,3 +19,7 @@ class GateType(Enum):
 class CharacterType(Enum):
     MAGICIAN = "Magier"
     GUARDIAN = "Wächter"
+
+class RotationDirection(Enum):
+    LEFT = "left"
+    RIGHT = "right"

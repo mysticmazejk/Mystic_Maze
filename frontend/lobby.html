@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
 
+<head>
     <meta charset="UTF-8">
 
     <meta
@@ -15,137 +15,300 @@
         rel="stylesheet"
         href="/static/css/style.css"
     >
-
 </head>
 
-<body>
 
-<main class="container">
+<body class="lobby-page-body">
 
-    <h1>Lobby</h1>
+<main class="lobby-page">
 
-    <p>
-        Spiel-ID:
-        <strong id="game-id"></strong>
-    </p>
+    <header class="lobby-header">
 
-    <p>
-        Du bist Spieler
-        <strong id="player-index"></strong>
-    </p>
+        <div>
+            <span class="lobby-eyebrow">
+                MYSTIC MAZE
+            </span>
 
-    <p>
-        Verbindung:
-        <strong id="connection-status">
-            wird aufgebaut...
-        </strong>
-    </p>
+            <h1>
+                Lobby
+            </h1>
+
+            <p>
+                Warte auf deine Mitspieler und
+                bereite die Partie vor.
+            </p>
+        </div>
+
+        <div class="lobby-connection">
+            <span>Verbindung</span>
+
+            <strong id="connection-status">
+                wird aufgebaut...
+            </strong>
+        </div>
+
+    </header>
 
 
-    <section>
+    <!-- =====================================================
+         Spielinformationen
+         ===================================================== -->
 
-        <h2>Spieler</h2>
+    <section class="lobby-info-card">
 
-        <ul id="player-list"></ul>
+        <div class="lobby-game-id-area">
 
-    </section>
-
-    <section id="character-section">
-
-        <h2>Charakter wählen</h2>
-
-        <label for="character-select">
-            Dein Charakter
-        </label>
-
-        <select id="character-select">
-
-            <option value="">
-                Bitte wählen
-            </option>
-
-            <option value="Magier">
-                Magier
-            </option>
-
-            <option value="Wächter">
-                Wächter
-            </option>
-
-        </select>
-
-        <button
-            id="select-character-button"
-            type="button"
-        >
-            Charakter auswählen
-        </button>
-
-        <p id="character-description"></p>
-
-    </section>
-
-    <section id="start-section">
-
-        <h2>Spiel starten</h2>
-
-        <form id="start-game-form">
-
-            <label for="targets-per-player">
-                Zielkarten pro Spieler
+            <label for="game-id">
+                Spiel-ID
             </label>
 
-            <input
-                id="targets-per-player"
-                type="number"
-                min="1"
-                max="11"
-                value="5"
-                required
+            <div class="lobby-copy-row">
+
+                <input
+                    id="game-id"
+                    class="lobby-game-id"
+                    type="text"
+                    readonly
+                    aria-label="Spiel-ID"
+                >
+
+                <button
+                    id="copy-game-id-button"
+                    class="lobby-copy-button"
+                    type="button"
+                >
+                    Kopieren
+                </button>
+
+            </div>
+
+            <span
+                id="copy-game-id-status"
+                class="lobby-copy-status"
+            ></span>
+
+        </div>
+
+
+        <div class="lobby-player-info">
+
+            <span>
+                Du bist
+            </span>
+
+            <strong>
+                Spieler
+                <span id="player-index"></span>
+            </strong>
+
+        </div>
+
+    </section>
+
+
+    <div class="lobby-grid">
+
+        <!-- =================================================
+             Linke Spalte
+             ================================================= -->
+
+        <div class="lobby-column">
+
+            <section class="lobby-card">
+
+                <div class="lobby-card-heading">
+                    <span class="lobby-card-number">
+                        01
+                    </span>
+
+                    <div>
+                        <h2>
+                            Spieler
+                        </h2>
+
+                        <p>
+                            Bereits beigetretene Spieler.
+                        </p>
+                    </div>
+                </div>
+
+
+                <ul
+                    id="player-list"
+                    class="lobby-player-list"
+                ></ul>
+
+            </section>
+
+
+            <section class="lobby-card">
+
+                <div class="lobby-card-heading">
+                    <span class="lobby-card-number">
+                        02
+                    </span>
+
+                    <div>
+                        <h2>
+                            Charakter wählen
+                        </h2>
+
+                        <p>
+                            Wähle deinen Charakter für diese Partie.
+                        </p>
+                    </div>
+                </div>
+
+
+                <div class="lobby-character-controls">
+
+                    <label for="character-select">
+                        Dein Charakter
+                    </label>
+
+                    <select id="character-select">
+                        <option value="">
+                            Bitte wählen
+                        </option>
+
+                        <option value="Magier">
+                            Magier
+                        </option>
+
+                        <option value="Wächter">
+                            Wächter
+                        </option>
+                    </select>
+
+
+                    <p
+                        id="character-description"
+                        class="lobby-character-description"
+                    ></p>
+
+
+                    <button
+                        id="select-character-button"
+                        type="button"
+                        class="lobby-secondary-button"
+                    >
+                        Charakter auswählen
+                    </button>
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <!-- =================================================
+             Rechte Spalte
+             ================================================= -->
+
+        <div class="lobby-column">
+
+            <section
+                id="start-section"
+                class="lobby-card"
             >
 
-            <button
-                id="start-game-button"
-                type="submit"
-            >
-                Spiel starten
-            </button>
+                <div class="lobby-card-heading">
+                    <span class="lobby-card-number">
+                        03
+                    </span>
 
-        </form>
+                    <div>
+                        <h2>
+                            Spiel starten
+                        </h2>
 
-    </section>
-
-
-    <section>
-
-        <h2>Spielstatus</h2>
-
-        <p id="game-status">
-            Warten auf Spielstart.
-        </p>
-
-    </section>
+                        <p>
+                            Lege die Anzahl persönlicher Ziele
+                            pro Spieler fest.
+                        </p>
+                    </div>
+                </div>
 
 
-    <section>
+                <form id="start-game-form">
 
-        <h2>Dein aktuelles Ziel</h2>
+                    <div class="lobby-form-field">
 
-        <p id="current-target">
-            Noch nicht vergeben.
-        </p>
+                        <label for="targets-per-player">
+                            Zielkarten pro Spieler
+                        </label>
 
-    </section>
+                        <input
+                            id="targets-per-player"
+                            type="number"
+                            min="1"
+                            value="5"
+                            required
+                        >
+
+                    </div>
+
+
+                    <button
+                        id="start-game-button"
+                        type="submit"
+                        class="lobby-primary-button"
+                    >
+                        Spiel starten
+                    </button>
+
+                </form>
+
+            </section>
+
+
+            <section class="lobby-card lobby-status-card">
+
+                <div class="lobby-card-heading">
+                    <span class="lobby-card-number">
+                        04
+                    </span>
+
+                    <div>
+                        <h2>
+                            Spielstatus
+                        </h2>
+
+                        <p>
+                            Aktueller Zustand der Partie.
+                        </p>
+                    </div>
+                </div>
+
+
+                <div class="lobby-status-content">
+
+                    <span class="lobby-status-dot"></span>
+
+                    <span id="game-status">
+                        Warten auf Spielstart.
+                    </span>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </div>
 
 
     <p
         id="error-message"
-        class="error"
+        class="lobby-error"
     ></p>
 
 </main>
 
+
 <script src="/static/js/lobby.js"></script>
 
 </body>
+
 </html>

@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
@@ -15,76 +17,164 @@
     >
 </head>
 
-<body>
 
-<main class="container">
+<body class="start-page-body">
 
-    <h1>Mystic Maze</h1>
+<main class="start-page">
 
-    <section>
-        <h2>Neues Spiel</h2>
+    <header class="start-page-header">
 
-        <form id="create-game-form">
+        <div class="start-page-title-row">
+            <h1>
+                Mystic Maze
+            </h1>
+        </div>
 
-            <label for="create-name">
-                Spielername
-            </label>
+        <p>
+            Erstelle eine neue Partie oder tritt
+            einem bestehenden Labyrinth bei.
+        </p>
 
-            <input
-                id="create-name"
-                type="text"
-                required
-            >
+    </header>
 
-            <button type="submit">
-                Spiel erstellen
-            </button>
 
-        </form>
+    <section class="start-page-options">
+
+        <!-- =====================================================
+             Neues Spiel
+             ===================================================== -->
+
+        <article class="start-card">
+
+            <div class="start-card-header">
+
+                <div>
+                    <h2>
+                        Neues Spiel
+                    </h2>
+
+                    <p>
+                        Erstelle eine neue Partie und
+                        lade anschließend weitere Spieler ein.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <form id="create-game-form">
+
+                <div class="start-form-field">
+
+                    <label for="create-name">
+                        Spielername
+                    </label>
+
+                    <input
+                        id="create-name"
+                        type="text"
+                        placeholder="Dein Name"
+                        autocomplete="nickname"
+                        required
+                    >
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="start-primary-button"
+                >
+                    Spiel erstellen
+                </button>
+
+            </form>
+
+        </article>
+
+
+        <!-- =====================================================
+             Spiel beitreten
+             ===================================================== -->
+
+        <article class="start-card">
+
+            <div class="start-card-header">
+
+                <div>
+                    <h2>
+                        Spiel beitreten
+                    </h2>
+
+                    <p>
+                        Gib die Spiel-ID einer bestehenden
+                        Partie und deinen Namen ein.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <form id="join-game-form">
+
+                <div class="start-form-field">
+
+                    <label for="join-game-id">
+                        Spiel-ID
+                    </label>
+
+                    <input
+                        id="join-game-id"
+                        type="text"
+                        placeholder="Spiel-ID eingeben"
+                        autocomplete="off"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="start-form-field">
+
+                    <label for="join-name">
+                        Spielername
+                    </label>
+
+                    <input
+                        id="join-name"
+                        type="text"
+                        placeholder="Dein Name"
+                        autocomplete="nickname"
+                        required
+                    >
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="start-primary-button"
+                >
+                    Beitreten
+                </button>
+
+            </form>
+
+        </article>
+
     </section>
 
-
-    <section>
-        <h2>Spiel beitreten</h2>
-
-        <form id="join-game-form">
-
-            <label for="join-game-id">
-                Spiel-ID
-            </label>
-
-            <input
-                id="join-game-id"
-                type="text"
-                maxlength="6"
-                required
-            >
-
-            <label for="join-name">
-                Spielername
-            </label>
-
-            <input
-                id="join-name"
-                type="text"
-                required
-            >
-
-            <button type="submit">
-                Beitreten
-            </button>
-
-        </form>
-    </section>
 
     <p
         id="error-message"
-        class="error"
+        class="start-page-error"
     ></p>
 
 </main>
 
+
 <script src="/static/js/index.js"></script>
 
 </body>
+
 </html>

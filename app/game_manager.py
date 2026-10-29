@@ -1,6 +1,6 @@
 import secrets
 
-from app.game.enums import Direction, CharacterType
+from app.game.enums import Direction, CharacterType, RotationDirection
 from app.game.game import Game
 from app.game.player import Player
 from app.game.tile import Tile
@@ -585,7 +585,8 @@ class GameManager:
             game_id: str,
             player_index: int,
             row: int,
-            column: int
+            column: int,
+            direction: RotationDirection
     ) -> None:
         """
         Führt die aktive Fähigkeit des Magiers aus.
@@ -594,6 +595,7 @@ class GameManager:
         :param player_index: Index des Magiers.
         :param row: Zeile der zu drehenden Kachel.
         :param column: Spalte der zu drehenden Kachel.
+        :param direction: Richtung der zu drehenden Kachel.
         """
         game = self.get_game(
             game_id
@@ -607,5 +609,6 @@ class GameManager:
         game.use_magician_ability(
             player,
             row,
-            column
+            column,
+            direction
         )

@@ -1,7 +1,7 @@
 import random
 
 from app.game.board import Board
-from app.game.enums import Direction, GateType, CharacterType
+from app.game.enums import Direction, GateType, CharacterType, RotationDirection
 from app.game.player import Player
 from app.game.target import Target
 
@@ -999,9 +999,10 @@ class Game:
 
     def use_magician_ability(
             self,
-            player: Player,
+            player,
             row: int,
-            column: int
+            column: int,
+            direction: RotationDirection
     ) -> None:
         """
         Verwendet die Sonderfähigkeit des Magiers.
@@ -1016,6 +1017,7 @@ class Game:
         :param player: Spieler, der die Fähigkeit verwendet.
         :param row: Zeile der zu drehenden Kachel.
         :param column: Spalte der zu drehenden Kachel.
+        :param direction: Richtung der zu drehenden Kachel.
         :raises ValueError: Wenn die Fähigkeit aktuell nicht verwendet werden darf.
         :raises ValueError: Wenn die Position ungültig ist.
         :raises ValueError: Wenn eine feste Kachel ausgewählt wurde.
@@ -1085,10 +1087,18 @@ class Game:
                 "Feste Kacheln können durch den Magier nicht gedreht werden."
             )
 
-        # Bewegliche Board-Kachel um 90 Grad drehen.
-        tile.rotation = (
-                                tile.rotation + 1
-                        ) % 4
+        # Bewegliche Board-Kachel um 90 Grad nach rechts oder links drehen.
+        tile = self.board.tiles[row][column]
+
+        if direction == RotationDirection.RIGHT:
+            tile.rotation = (
+                                    tile.rotation + 1
+                            ) % 4
+
+        elif direction == RotationDirection.LEFT:
+            tile.rotation = (
+                                    tile.rotation - 1
+                            ) % 4
 
         # Die Fähigkeit ist damit für das aktuell
         # gesuchte persönliche Ziel verbraucht.

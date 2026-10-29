@@ -1,0 +1,41 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 100 100"
+>
+
+  <defs>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow
+        dx="0"
+        dy="2"
+        stdDeviation="2"
+        flood-color="#000000"
+        flood-opacity="0.28"
+      />
+    </filter>
+  </defs>
+
+
+  <g filter="url(#shadow)">
+    <!-- Äußerer Rand des Waldweges -->
+    <path
+        d="M50 0 L50 100 M0 50 L100 50"
+        fill="none"
+        stroke="#d8c39a"
+        stroke-width="34"
+        stroke-linecap="butt"
+        stroke-linejoin="round"
+    />
+
+    <!-- Heller innerer Bereich des Waldweges -->
+    <path
+        d="M50 0 L50 100 M0 50 L100 50"
+        fill="none"
+        stroke="#f3e6c5"
+        stroke-width="16"
+        stroke-linecap="butt"
+        stroke-linejoin="round"
+        opacity="0.95"
+    />
+  </g>
+</svg>

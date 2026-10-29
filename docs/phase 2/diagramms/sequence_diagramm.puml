@@ -1,3 +1,4 @@
+
 @startuml
 
 actor Spieler
@@ -12,28 +13,28 @@ participant "Weitere Browser" as Others
 
 == Freie Kachel drehen ==
 
-Spieler -> Browser : freie Kachel drehen
-Browser -> WS : rotate_spare_tile
+opt Spieler dreht die freie Kachel
+    Spieler -> Browser : freie Kachel drehen
+    Browser -> WS : rotate_spare_tile
 
-WS -> Manager : get_game(game_id)
-Manager --> WS : Game
+    WS -> Manager : rotate_spare_tile(game_id,\nplayer_index)
+    Manager -> Game : rotate_spare_tile()
+    Game --> Manager
+    Manager --> WS
 
-WS -> Game : rotate_spare_tile(player_index)
-Game --> WS : Aktion erfolgreich
-
-WS -> Connections : publish_game_state(game_id)
-Connections -> Browser : aktualisierter Spielzustand
-Connections -> Others : aktualisierter Spielzustand
+    WS -> Connections : Spielzustand verteilen
+    Connections --> Browser : game_state und player_state
+    Connections --> Others : game_state und jeweiliger player_state
+    WS --> Browser : action_success
+end
 
 == Labyrinth verschieben ==
 
 Spieler -> Browser : Einschubposition wählen
-Browser -> WS : insert_spare_tile(index, direction)
+Browser -> WS : shift(index, direction)
 
-WS -> Manager : get_game(game_id)
-Manager --> WS : Game
-
-WS -> Game : insert_spare_tile(player_index,\nindex, direction)
+WS -> Manager : shift_board(game_id,\nplayer_index, index, direction)
+Manager -> Game : insert_spare_tile(index, direction)
 
 Game -> Game : Spielstatus und\nZugberechtigung prüfen
 
@@ -41,67 +42,72 @@ alt Aktion gültig
     Game -> Board : insert_spare_tile(index, direction)
     Board --> Game : Spielfeld verschoben
 
-    Game -> Game : Spieler auf betroffener\nReihe / Spalte mitverschieben
+    Game -> Game : betroffene Spieler mitverschieben
 
-    Game --> WS : Aktion erfolgreich
+    Game --> Manager
+    Manager --> WS
 
-    WS -> Connections : publish_game_state(game_id)
-    Connections -> Browser : aktualisierter Spielzustand
-    Connections -> Others : aktualisierter Spielzustand
+    WS -> Connections : Spielzustand verteilen
+    Connections --> Browser : game_state und player_state
+    Connections --> Others : game_state und jeweiliger player_state
+    WS --> Browser : action_success
+
 else Aktion ungültig
-    Game --> WS : Fehler
-    WS --> Browser : Fehlermeldung
+    Game --> Manager : Fehler
+    Manager --> WS : Fehler
+    WS --> Browser : error
 end
 
 == Spielfigur bewegen ==
 
-Spieler -> Browser : Zielfeld auswählen
-Browser -> WS : move_player(row, column)
+opt Spieler bewegt seine Spielfigur
+    Spieler -> Browser : Zielfeld auswählen
+    Browser -> WS : move(row, column)
 
-WS -> Manager : get_game(game_id)
-Manager --> WS : Game
+    WS -> Manager : move_player(game_id,\nplayer_index, row, column)
+    Manager -> Game : move_player(player, row, column)
 
-WS -> Game : move_player(player_index,\nrow, column)
+    Game -> Board : get_reachable_positions(...)
+    Board --> Game : erreichbare Positionen
 
-Game -> Board : get_reachable_positions(...)
-Board --> Game : erreichbare Positionen
+    alt Zielfeld erreichbar
+        Game -> Game : Spielerposition aktualisieren
+        Game -> Game : Kacheleffekte verarbeiten
+        Game -> Game : Siegbedingung prüfen
 
-alt Zielfeld erreichbar
-    Game -> Game : Spielerposition aktualisieren
-    Game -> Game : Kacheleffekte verarbeiten
-    Game -> Game : Siegbedingung prüfen
+        Game --> Manager
+        Manager --> WS
 
-    Game --> WS : Aktion erfolgreich
+        WS -> Connections : Spielzustand verteilen
+        Connections --> Browser : game_state und player_state
+        Connections --> Others : game_state und jeweiliger player_state
+        WS --> Browser : action_success
 
-    WS -> Connections : publish_game_state(game_id)
-    Connections -> Browser : aktualisierter Spielzustand
-    Connections -> Others : aktualisierter Spielzustand
-
-else Zielfeld nicht erreichbar
-    Game --> WS : Fehler
-    WS --> Browser : Fehlermeldung
+    else Zielfeld nicht erreichbar
+        Game --> Manager : Fehler
+        Manager --> WS : Fehler
+        WS --> Browser : error
+    end
 end
 
 == Zug beenden ==
 
-alt Partie nicht beendet
+opt Partie nicht beendet
     Spieler -> Browser : Zug beenden
     Browser -> WS : end_turn
 
-    WS -> Manager : get_game(game_id)
-    Manager --> WS : Game
+    WS -> Manager : end_turn(game_id, player_index)
+    Manager -> Game : end_turn()
 
-    WS -> Game : end_turn(player_index)
     Game -> Game : nächsten Spieler aktivieren\nund Zugstatus zurücksetzen
 
-    Game --> WS : Aktion erfolgreich
+    Game --> Manager
+    Manager --> WS
 
-    WS -> Connections : publish_game_state(game_id)
-    Connections -> Browser : aktualisierter Spielzustand
-    Connections -> Others : aktualisierter Spielzustand
-else Siegbedingung erfüllt
-    Connections -> Browser : Spielende / Gewinner
-    Connections -> Others : Spielende / Gewinner
+    WS -> Connections : Spielzustand verteilen
+    Connections --> Browser : game_state und player_state
+    Connections --> Others : game_state und jeweiliger player_state
+    WS --> Browser : action_success
 end
 
 @enduml

@@ -623,7 +623,8 @@ def test_unknown_websocket_action_returns_error():
 def test_magician_can_rotate_movable_tile_via_websocket():
     """
     Prüft, ob der Magier seine aktive Fähigkeit
-    über WebSocket einsetzen kann.
+    über WebSocket einsetzen und eine bewegliche
+    Kachel nach rechts drehen kann.
     """
     game_id = create_started_game()
 
@@ -631,7 +632,6 @@ def test_magician_can_rotate_movable_tile_via_websocket():
         game_id
     )
 
-    # Spieler 0 ist in unserem Testspiel der Magier.
     player = game.players[0]
 
     assert (
@@ -639,14 +639,11 @@ def test_magician_can_rotate_movable_tile_via_websocket():
         == CharacterType.MAGICIAN
     )
 
-    # Die Fähigkeit wird erst nach dem
-    # normalen Einschieben verfügbar.
     game.insert_spare_tile(
         1,
         Direction.EAST
     )
 
-    # Bewegliche Kachel für den Test suchen.
     target_row = None
     target_column = None
 
@@ -661,6 +658,9 @@ def test_magician_can_rotate_movable_tile_via_websocket():
 
         if target_row is not None:
             break
+
+    assert target_row is not None
+    assert target_column is not None
 
     tile = game.board.tiles[
         target_row
@@ -680,7 +680,8 @@ def test_magician_can_rotate_movable_tile_via_websocket():
             {
                 "type": "use_magician_ability",
                 "row": target_row,
-                "column": target_column
+                "column": target_column,
+                "direction": "right",
             }
         )
 
@@ -696,12 +697,19 @@ def test_magician_can_rotate_movable_tile_via_websocket():
             websocket.receive_json()
         )
 
-        assert game_state["type"] == "game_state"
-        assert player_state["type"] == "player_state"
+        assert (
+            game_state["type"]
+            == "game_state"
+        )
+
+        assert (
+            player_state["type"]
+            == "player_state"
+        )
 
         assert success == {
             "type": "action_success",
-            "action": "use_magician_ability"
+            "action": "use_magician_ability",
         }
 
         assert (
@@ -743,7 +751,6 @@ def test_magician_cannot_rotate_fixed_tile_via_websocket():
         Direction.EAST
     )
 
-    # (2, 2) ist eine feste Kachel.
     tile = game.board.tiles[2][2]
 
     assert tile.fixed is True
@@ -762,7 +769,8 @@ def test_magician_cannot_rotate_fixed_tile_via_websocket():
             {
                 "type": "use_magician_ability",
                 "row": 2,
-                "column": 2
+                "column": 2,
+                "direction": "right",
             }
         )
 
@@ -770,14 +778,20 @@ def test_magician_cannot_rotate_fixed_tile_via_websocket():
             websocket.receive_json()
         )
 
-        assert response["type"] == "error"
+        assert (
+            response["type"]
+            == "error"
+        )
 
         assert (
             "Feste Kacheln"
             in response["message"]
         )
 
-    assert tile.rotation == old_rotation
+    assert (
+        tile.rotation
+        == old_rotation
+    )
 
     assert (
         game.players[0]
