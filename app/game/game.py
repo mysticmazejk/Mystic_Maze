@@ -306,8 +306,8 @@ class Game:
             if was_pushed_out:
                 self._handle_tile_effects(player)
 
-                # Falls der Spieler dadurch auf seine Startposition
-                # gelangt und bereits alle Ziele erfüllt hat,
+                # Falls der Spieler dadurch auf dem
+                # letzten gesuchten Ziel landet,
                 # kann auch das Verschieben das Spiel beenden.
                 self._check_winner(player)
 
@@ -813,10 +813,7 @@ class Game:
         :return: True, wenn der Spieler gewonnen hat.
         """
 
-        if (
-                self.has_completed_all_targets(player)
-                and self.is_on_start_position(player)
-        ):
+        if self.has_completed_all_targets(player):
             self.finished = True
             self.winner = player
 

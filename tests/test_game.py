@@ -849,40 +849,16 @@ def test_player_does_not_win_with_open_targets():
     assert game.winner is None
 
 
-def test_player_does_not_win_away_from_start():
-    """
-    Prüft, ob ein Spieler nach Abschluss aller Ziele nicht gewinnt,
-    solange er sich nicht auf seinem Startfeld befindet.
-    """
-    game = create_started_game()
-
-    player = game.players[0]
-
-    player.targets.clear()
-
-    player.row = 1
-    player.column = 1
-
-    assert not game._check_winner(
-        player
-    )
-
-    assert not game.finished
-
-
-def test_player_wins_after_all_targets_and_return_to_start():
+def test_player_wins_after_all_targets():
     """
     Prüft, ob ein Spieler gewinnt, wenn alle persönlichen Ziele
-    abgeschlossen sind und er zu seinem Startfeld zurückkehrt.
+    abgeschlossen sind
     """
     game = create_started_game()
 
     player = game.players[0]
 
     player.targets.clear()
-
-    player.row = player.start_row
-    player.column = player.start_column
 
     assert game._check_winner(
         player
