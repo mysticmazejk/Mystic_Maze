@@ -500,7 +500,7 @@ function renderPlayers(state) {
         // Gefundene Ziele
         const targets = document.createElement("span");
 
-        const completedTargets = player.completed_targets?.length ?? 0;
+        const completedTargets = player.completed_target_count ?? 0;
 
         targets.textContent = completedTargets === 1 ? "1 Ziel gefunden" : `${completedTargets} Ziele gefunden`;
 
