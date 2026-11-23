@@ -6,7 +6,6 @@ from app.game.enums import (
 )
 from app.game_manager import GameManager
 
-
 def create_game_with_two_players(
     manager: GameManager
 ) -> str:
@@ -97,6 +96,7 @@ def create_started_game(
 
     return game_id
 
+# Unit-Tests
 
 def test_create_game():
     """
@@ -188,34 +188,6 @@ def test_removed_game_cannot_be_accessed():
         )
 
 
-def test_add_player_to_game():
-    """
-    Prüft, ob ein Spieler einem Spiel hinzugefügt werden kann
-    und der korrekte Spielerindex zurückgegeben wird.
-    """
-    manager = GameManager()
-
-    game_id = manager.create_game()
-
-    player_index = manager.add_player(
-        game_id,
-        "Spieler 1"
-    )
-
-    game = manager.get_game(
-        game_id
-    )
-
-    player = manager.get_player(
-        game_id,
-        player_index
-    )
-
-    assert len(game.players) == 1
-    assert player_index == 0
-    assert player.name == "Spieler 1"
-
-
 def test_player_name_is_trimmed():
     """
     Prüft, ob Leerzeichen am Anfang und Ende eines
@@ -305,6 +277,77 @@ def test_duplicate_player_name_is_case_insensitive():
         )
 
 
+def test_add_player_returns_player_index():
+    """
+    Prüft, ob beim Beitritt der feste Spielerindex zurückgegeben wird.
+    """
+    manager = GameManager()
+
+    game_id = manager.create_game()
+
+    first_index = manager.add_player(
+        game_id,
+        "Spieler 1"
+    )
+
+    second_index = manager.add_player(
+        game_id,
+        "Spieler 2"
+    )
+
+    assert first_index == 0
+    assert second_index == 1
+
+
+def test_game_manager_get_player_by_index():
+    """
+    Prüft, ob der GameManager einen Spieler anhand
+    seines Index zurückgeben kann.
+    """
+    manager = GameManager()
+
+    game_id = create_game_with_two_players(
+        manager
+    )
+
+    player = manager.get_player(
+        game_id,
+        1
+    )
+
+    assert player.name == "Spieler 2"
+
+
+# Integrationstests
+
+def test_add_player_to_game():
+    """
+    Prüft, ob ein Spieler einem Spiel hinzugefügt werden kann
+    und der korrekte Spielerindex zurückgegeben wird.
+    """
+    manager = GameManager()
+
+    game_id = manager.create_game()
+
+    player_index = manager.add_player(
+        game_id,
+        "Spieler 1"
+    )
+
+    game = manager.get_game(
+        game_id
+    )
+
+    player = manager.get_player(
+        game_id,
+        player_index
+    )
+
+    assert len(game.players) == 1
+    assert player_index == 0
+    assert player.name == "Spieler 1"
+
+
 def test_start_game():
     """
     Prüft, ob ein vollständig vorbereitetes Spiel
@@ -385,47 +428,6 @@ def test_cannot_add_player_after_game_start():
             game_id,
             "Spieler 3"
         )
-
-
-def test_add_player_returns_player_index():
-    """
-    Prüft, ob beim Beitritt der feste Spielerindex zurückgegeben wird.
-    """
-    manager = GameManager()
-
-    game_id = manager.create_game()
-
-    first_index = manager.add_player(
-        game_id,
-        "Spieler 1"
-    )
-
-    second_index = manager.add_player(
-        game_id,
-        "Spieler 2"
-    )
-
-    assert first_index == 0
-    assert second_index == 1
-
-
-def test_game_manager_get_player_by_index():
-    """
-    Prüft, ob der GameManager einen Spieler anhand
-    seines Index zurückgeben kann.
-    """
-    manager = GameManager()
-
-    game_id = create_game_with_two_players(
-        manager
-    )
-
-    player = manager.get_player(
-        game_id,
-        1
-    )
-
-    assert player.name == "Spieler 2"
 
 
 def test_public_game_state_contains_complete_board():

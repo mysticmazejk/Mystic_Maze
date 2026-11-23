@@ -620,6 +620,104 @@ def test_unknown_websocket_action_returns_error():
             in response["message"]
         )
 
+
+def test_shift_without_index_returns_error():
+    """
+    Prüft, ob eine Schiebeaktion ohne den erforderlichen
+    Index abgelehnt wird und der Spielzustand unverändert bleibt.
+    """
+    game_id = create_started_game()
+
+    state_before = (
+        game_manager.get_public_game_state(
+            game_id
+        ).model_dump(mode="json")
+    )
+
+    with client.websocket_connect(
+        f"/ws/games/{game_id}/players/0"
+    ) as websocket:
+
+        receive_initial_state(
+            websocket
+        )
+
+        websocket.send_json(
+            {
+                "type": "shift",
+                "direction": "east"
+            }
+        )
+
+        response = (
+            websocket.receive_json()
+        )
+
+        assert response["type"] == "error"
+
+        assert (
+            "fehlt der Index"
+            in response["message"]
+        )
+
+    state_after = (
+        game_manager.get_public_game_state(
+            game_id
+        ).model_dump(mode="json")
+    )
+
+    assert state_after == state_before
+
+def test_move_with_invalid_row_type_returns_error():
+    """
+    Prüft, ob eine Bewegung mit einem ungültigen
+    Datentyp abgelehnt wird und der Spielzustand
+    unverändert bleibt.
+    """
+    game_id = create_started_game()
+
+    state_before = (
+        game_manager.get_public_game_state(
+            game_id
+        ).model_dump(mode="json")
+    )
+
+    with client.websocket_connect(
+        f"/ws/games/{game_id}/players/0"
+    ) as websocket:
+
+        receive_initial_state(
+            websocket
+        )
+
+        websocket.send_json(
+            {
+                "type": "move",
+                "row": "ungueltig",
+                "column": 0
+            }
+        )
+
+        response = (
+            websocket.receive_json()
+        )
+
+        assert response["type"] == "error"
+
+        assert (
+            "Zeile und Spalte müssen Ganzzahlen sein."
+            in response["message"]
+        )
+
+    state_after = (
+        game_manager.get_public_game_state(
+            game_id
+        ).model_dump(mode="json")
+    )
+
+    assert state_after == state_before
+
+
 def test_magician_can_rotate_movable_tile_via_websocket():
     """
     Prüft, ob der Magier seine aktive Fähigkeit
